@@ -2122,16 +2122,18 @@ function exact_f64_div(uiA, uiB, rm) {
 
 const exact_f64_sqrt = (function() {
   function bigint_isqrt(n) {
-      if (n === 0n) return 0n;
-      let s = n.toString(2).length;
-      let x0 = 1n << (BigInt(s >> 1) + 1n);
-      while (true) {
-          let x1 = (x0 + n / x0) >> 1n;
-          if (x1 >= x0) return x0;
-          x0 = x1;
-      }
-  }
-
+    if (n === 0n) return 0n;
+    // slightly safer initial guess sizing
+    let x0 = 1n << ((BigInt(n.toString(2).length) + 1n) >> 1n);
+    while (true) {
+        let x1 = (x0 + n / x0) >> 1n;
+        if (x1 >= x0) {
+            // Check if we accidentally settled on r+1 instead of r
+            return (x0 * x0 > n) ? x0 - 1n : x0;
+        }
+        x0 = x1;
+    }
+}
   return function(a_bits, rm) {
       let uiA = BigInt.asUintN(64, a_bits);
       let signA = (uiA >> 63n) & 1n;
@@ -4192,67 +4194,70 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
 
 
     switch (funct5) {
-        case 0x00: // FADD
-            let rm_add = this.cpu.State.get_rm(rm_field);
-            this.cpu.State.f_ram[rd] = (fmt === 0)
-                ? this.cpu.FALU.F.fadd_s(val1_f, val2_f, rm_add)
-                : this.cpu.FALU.D.fadd_d(val1_f, val2_f, rm_add);
-            break;
+      case 0x00: // FADD (00000)
+          let rm_add = this.cpu.State.get_rm(rm_field);
+          this.cpu.State.f_ram[rd] = (fmt === 0)
+              ? this.cpu.FALU.F.fadd_s(val1_f, val2_f, rm_add)
+              : this.cpu.FALU.D.fadd_d(val1_f, val2_f, rm_add);
+          break;
 
+      case 0x01: // FSUB (00001) - WAS 0x04
+          let rm_sub = this.cpu.State.get_rm(rm_field);
+          this.cpu.State.f_ram[rd] = (fmt === 0)
+              ? this.cpu.FALU.F.fsub_s(val1_f, val2_f, rm_sub)
+              : this.cpu.FALU.D.fsub_d(val1_f, val2_f, rm_sub);
+          break;
 
-        case 0x04: // FSUB
-            let rm_sub = this.cpu.State.get_rm(rm_field);
-            this.cpu.State.f_ram[rd] = (fmt === 0)
-                ? this.cpu.FALU.F.fsub_s(val1_f, val2_f, rm_sub)
-                : this.cpu.FALU.D.fsub_d(val1_f, val2_f, rm_sub);
-            break;
+      case 0x02: // FMUL (00010) - WAS 0x08
+          let rm_mul = this.cpu.State.get_rm(rm_field);
+          this.cpu.State.f_ram[rd] = (fmt === 0)
+              ? this.cpu.FALU.F.fmul_s(val1_f, val2_f, rm_mul)
+              : this.cpu.FALU.D.fmul_d(val1_f, val2_f, rm_mul);
+          break;
 
+      case 0x03: // FDIV (00011) - WAS 0x0C
+          let rm_div = this.cpu.State.get_rm(rm_field);
+          this.cpu.State.f_ram[rd] = (fmt === 0)
+              ? this.cpu.FALU.F.fdiv_s(val1_f, val2_f, rm_div)
+              : this.cpu.FALU.D.fdiv_d(val1_f, val2_f, rm_div);
+          break;
 
-        case 0x08: // FMUL
-            let rm_mul = this.cpu.State.get_rm(rm_field);
-            this.cpu.State.f_ram[rd] = (fmt === 0)
-                ? this.cpu.FALU.F.fmul_s(val1_f, val2_f, rm_mul)
-                : this.cpu.FALU.D.fmul_d(val1_f, val2_f, rm_mul);
-            break;
+      case 0x04: // FSGNJ, FSGNJN, FSGNJX (00100)
+          // TODO: Implement Sign Injection
+          break;
+          
+      case 0x05: // FMIN, FMAX (00101)
+          // TODO: Implement Min/Max
+          break;
 
+      case 0x08: // FCVT.fmt.fmt (01000) - WAS 0x10
+          let rm_cvt_ff = this.cpu.State.get_rm(rm_field);
+          if (fmt === 1 && rs2 === 0) {
+              this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fcvt_s_d(val1_f, rm_cvt_ff);
+          } else if (fmt === 0 && rs2 === 1) {
+              this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fcvt_d_s(val1_f, rm_cvt_ff);
+          }
+          break;
 
-        case 0x0C: // FDIV
-            let rm_div = this.cpu.State.get_rm(rm_field);
-            this.cpu.State.f_ram[rd] = (fmt === 0)
-                ? this.cpu.FALU.F.fdiv_s(val1_f, val2_f, rm_div)
-                : this.cpu.FALU.D.fdiv_d(val1_f, val2_f, rm_div);
-            break;
+      case 0x0B: // FSQRT (01011)
+          let rm_sqrt = this.cpu.State.get_rm(rm_field);
+          this.cpu.State.f_ram[rd] = (fmt === 0)
+              ? this.cpu.FALU.F.fsqrt_s(val1_f, rm_sqrt)
+              : this.cpu.FALU.D.fsqrt_d(val1_f, rm_sqrt);
+          break;
 
-
-        case 0x0B: // FSQRT
-            let rm_sqrt = this.cpu.State.get_rm(rm_field);
-            this.cpu.State.f_ram[rd] = (fmt === 0)
-                ? this.cpu.FALU.F.fsqrt_s(val1_f, rm_sqrt)
-                : this.cpu.FALU.D.fsqrt_d(val1_f, rm_sqrt);
-            break;
-
-
-            case 0x10: // Was 0x20: FCVT.fmt.fmt (Float to Float)
-            let rm_cvt_ff = this.cpu.State.get_rm(rm_field);
-            if (fmt === 1 && rs2 === 0) {
-                this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fcvt_s_d(val1_f, rm_cvt_ff);
-            } else if (fmt === 0 && rs2 === 1) {
-                this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fcvt_d_s(val1_f, rm_cvt_ff);
-            }
-            break;
-
-        case 0x14: // Was 0x50: FCMP (FEQ, FLT, FLE)
-            write_to_x = true;
-            if (fmt === 0) {
-                if (rm_field === 0) result_x = this.cpu.FALU.F.fle_s(val1_f, val2_f);
-                else if (rm_field === 1) result_x = this.cpu.FALU.F.flt_s(val1_f, val2_f);
-                else if (rm_field === 2) result_x = this.cpu.FALU.F.feq_s(val1_f, val2_f);
-            } else if (fmt === 1) {
-                if (rm_field === 0) result_x = this.cpu.FALU.D.fle_d(val1_f, val2_f);
-                else if (rm_field === 1) result_x = this.cpu.FALU.D.flt_d(val1_f, val2_f);
-                else if (rm_field === 2) result_x = this.cpu.FALU.D.feq_d(val1_f, val2_f);
-            }
-            break;
+      case 0x14: // FCMP (10100)
+          write_to_x = true;
+          if (fmt === 0) {
+              if (rm_field === 0) result_x = this.cpu.FALU.F.fle_s(val1_f, val2_f);
+              else if (rm_field === 1) result_x = this.cpu.FALU.F.flt_s(val1_f, val2_f);
+              else if (rm_field === 2) result_x = this.cpu.FALU.F.feq_s(val1_f, val2_f);
+          } else if (fmt === 1) {
+              if (rm_field === 0) result_x = this.cpu.FALU.D.fle_d(val1_f, val2_f);
+              else if (rm_field === 1) result_x = this.cpu.FALU.D.flt_d(val1_f, val2_f);
+              else if (rm_field === 2) result_x = this.cpu.FALU.D.feq_d(val1_f, val2_f);
+          }
+          break;
 
         case 0x18: // Was 0x60: FCVT.int.fmt (Float to Integer)
             write_to_x = true;
@@ -5028,52 +5033,52 @@ class PhysicalMemory {
 const RAM_SIZE = 128 * 1024 * 1024;
 RVALUATION64.memory = new PhysicalMemory(RAM_SIZE, 0x80000000n);
 const machineCode = new Uint32Array([
-  0x00100117, 0x00010113, 0x0040006f, 0xff010113,
-    0x00113423, 0x02d00713, 0x00000797, 0x27878793,
-    0x100006b7, 0x00178793, 0x00e68023, 0x0007c703,
-    0xfe071ae3, 0x01005537, 0x00000797, 0x1e87b507,
-    0x02651513, 0x0c0000ef, 0x00000797, 0x1e87b507,
-    0x00000517, 0x1d853503, 0x0ac000ef, 0x00000797,
-    0x1e47b507, 0x00000517, 0x1d453503, 0x098000ef,
-    0x02d00713, 0x00000797, 0x24478793, 0x100006b7,
-    0x00178793, 0x00e68023, 0x0007c703, 0xfe071ae3,
-    0x00100073, 0x00813083, 0x00000513, 0x01010113,
-    0x00008067, 0x100007b7, 0x00a78023, 0x00008067,
-    0x00054783, 0x00078c63, 0x10000737, 0x00150513,
-    0x00f70023, 0x00054783, 0xfe079ae3, 0x00008067,
-    0x03c00713, 0x00000597, 0x17458593, 0x10000637,
-    0xffc00693, 0x00e557b3, 0x00f7f793, 0x00f587b3,
-    0x0007c783, 0xffc7071b, 0x00f60023, 0xfed714e3,
-    0x00008067, 0x5a0577d3, 0xe2078653, 0x04900713,
-    0x00000797, 0x15078793, 0x100006b7, 0x00178793,
-    0x00e68023, 0x0007c703, 0xfe071ae3, 0xe20508d3,
-    0x03c00713, 0x00000697, 0x11468693, 0x10000837,
-    0xffc00593, 0x00e8d7b3, 0x00f7f793, 0x00f687b3,
-    0x0007c783, 0xffc7071b, 0x00f80023, 0xfeb714e3,
-    0x02000713, 0x00000797, 0x10478793, 0x100005b7,
-    0x00178793, 0x00e58023, 0x0007c703, 0xfe071ae3,
-    0x03c00713, 0x10000837, 0xffc00593, 0x00e657b3,
-    0x00f7f793, 0x00f687b3, 0x0007c783, 0xffc7071b,
-    0x00f80023, 0xfeb714e3, 0x02000713, 0x00000797,
-    0x0d478793, 0x100005b7, 0x04c50463, 0x00178793,
-    0x00e58023, 0x0007c703, 0xfe071ae3, 0x03c00713,
-    0x10000637, 0xffc00593, 0x00e557b3, 0x00f7f793,
-    0x00f687b3, 0x0007c783, 0xffc7071b, 0x00f60023,
-    0xfeb714e3, 0x00a00793, 0x00f60023, 0x00008067,
-    0x00000797, 0x07078793, 0x100006b7, 0x00178793,
-    0x00e68023, 0x0007c703, 0xfe071ae3, 0x00008067,
-    0x00000000, 0x40390000, 0x667f3bcd, 0x3ff6a09e,
-    0x00000000, 0x40000000, 0x9b97f4a7, 0x4001e377,
-    0x00000000, 0x40140000, 0x33323130, 0x37363534,
-    0x42413938, 0x46454443, 0x00000000, 0x00000000,
-    0x203a4e49, 0x00000000, 0x54554f20, 0x0000203a,
-    0x41505b20, 0x0a5d5353, 0x00000000, 0x00000000,
-    0x41465b20, 0x205d4c49, 0x3a505845, 0x00000020,
-    0x202d2d2d, 0x52515346, 0x20442e54, 0x696c6156,
-    0x69746164, 0x53206e6f, 0x74726174, 0x2d2d2d20,
-    0x0000000a, 0x00000000, 0x202d2d2d, 0x20646e45,
-    0x5420666f, 0x20747365, 0x0a2d2d2d, 0x00000000,
-  ]);
+  0x00100117, 0x00010113, 0x1141a009, 0x0713e406,
+  0x079702d0, 0x87930000, 0x06b72767, 0x07851000,
+  0x00e68023, 0x0007c703, 0x00effb7d, 0x00ef1360,
+  0x00ef1520, 0x071318e0, 0x079702d0, 0x87930000,
+  0x06b727e7, 0x07851000, 0x00e68023, 0x0007c703,
+  0x9002fb7d, 0x450160a2, 0x80820141, 0x100007b7,
+  0x00a78023, 0x47838082, 0xcb890005, 0x10000737,
+  0x00230505, 0x478300f7, 0xfbfd0005, 0x07138082,
+  0x059703c0, 0x85930000, 0x06371665, 0x56f11000,
+  0x00e557b3, 0x97ae8bbd, 0x0007c783, 0x00233771,
+  0x17e300f6, 0x8082fed7, 0x00054783, 0x0737cb89,
+  0x05051000, 0x00f70023, 0x00054783, 0x0713fbfd,
+  0x07970200, 0x87930000, 0x06b714e7, 0x8e631000,
+  0x078506c5, 0x00e68023, 0x0007c703, 0x0713fb7d,
+  0x069703c0, 0x86930000, 0x08371066, 0x55711000,
+  0x00e5d7b3, 0x97b68bbd, 0x0007c783, 0x00233771,
+  0x17e300f8, 0x0713fea7, 0x07970200, 0x87930000,
+  0x05b71167, 0x07851000, 0x00e58023, 0x0007c703,
+  0x0713fb7d, 0x05b703c0, 0x55711000, 0x00e657b3,
+  0x97b68bbd, 0x0007c783, 0x80233771, 0x17e300f5,
+  0x47a9fea7, 0x00f58023, 0x07978082, 0x87930000,
+  0x07850b67, 0x00e68023, 0x0007c703, 0x8082fb7d,
+  0x07931141, 0xe03e02a0, 0x6582e402, 0x567d67a2,
+  0x02f5c5b3, 0x00000517, 0x0b450513, 0xb72d0141,
+  0x07931101, 0xec060640, 0x006cc63e, 0xa5af47e5,
+  0x158200f5, 0x06400613, 0x05179181, 0x05130000,
+  0xf0ef0a65, 0x6583f07f, 0x061300c1, 0x051707d0,
+  0x05130000, 0xf0ef0aa5, 0x60e2ef3f, 0x80826105,
+  0xe4021141, 0x272227a2, 0x1ae7f7d3, 0xe20785d3,
+  0x00fff637, 0x0517161e, 0x05130000, 0x014109a5,
+  0x0000b5e1, 0x00000000, 0x33323130, 0x37363534,
+  0x42413938, 0x46454443, 0x00000000, 0x00000000,
+  0x41505b20, 0x0a5d5353, 0x00000000, 0x00000000,
+  0x41465b20, 0x205d4c49, 0x3a544f47, 0x00000020,
+  0x50584520, 0x0000203a, 0x78452d4d, 0x44203a74,
+  0x62207669, 0x655a2079, 0x20206f72, 0x00000000,
+  0x78452d41, 0x41203a74, 0x46204f4d, 0x68637465,
+  0x00002020, 0x00000000, 0x78452d41, 0x41203a74,
+  0x53204f4d, 0x65726f74, 0x00002020, 0x00000000,
+  0x78452d44, 0x30203a74, 0x2f20302e, 0x302e3020,
+  0x00002020, 0x00000000, 0x202d2d2d, 0x43534952,
+  0x5220562d, 0x47343656, 0x74532043, 0x73736572,
+  0x73655420, 0x74532074, 0x20747261, 0x0a2d2d2d,
+  0x00000000, 0x00000000, 0x202d2d2d, 0x20646e45,
+  0x5420666f, 0x20747365, 0x0a2d2d2d, 0x00000000,
+]);
 
 
 let ramView = new Uint32Array(RVALUATION64.memory.buffer);
