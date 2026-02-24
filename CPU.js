@@ -2479,27 +2479,98 @@ $.System.Zicsr = {
   // ==========================================
   // HARDWARE PERMISSION ENFORCER
   // ==========================================
+  // ==========================================
+  // HARDWARE PERMISSION ENFORCER
+  // ==========================================
   checkPermissions: function(csr_addr, is_write) {
-    let State = $.State;
+    let State = $.State; // Assuming $ is your root object
     
     // Extract minimum privilege required (Bits 9:8)
+    // 00 = User, 01 = Supervisor, 11 = Machine
     let req_prv = (csr_addr >> 8) & 0x3;
     
     // Extract read-only status (Bits 11:10 === 3 means Read-Only)
     let is_read_only = ((csr_addr >> 10) & 0x3) === 0x3;
 
-    // 1. Privilege Check
+    // 1. Privilege Level Check
     if (State.prv < BigInt(req_prv)) {
-        // You'll need to reference your MMU trap function here
-        $.MMU.triggerTrap(2n, $.State.pc, false); 
+        // Attempting to access a CSR above current privilege level
+        $.MMU.triggerTrap(2n, $.State.pc, false); // Illegal Instruction Trap
         throw new Error("TRAP_RAISED");
     }
 
     // 2. Read-Only Write Check
     if (is_write && is_read_only) {
+        // Attempting to write to a read-only CSR
         $.MMU.triggerTrap(2n, $.State.pc, false);
         throw new Error("TRAP_RAISED");
     }
+  },
+
+  // ==========================================
+  // INSTRUCTION EXECUTORS
+  // ==========================================
+
+  // csrrw: Always writes to the CSR, even if rs1 is x0
+  csrrw: function(csr_addr, rs1_val) {
+      this.checkPermissions(csr_addr, true); 
+      let old_val = this.read(csr_addr);
+      this.write(csr_addr, rs1_val);
+      return old_val; 
+  },
+
+  // csrrs: Only writes if rs1 is NOT x0 (val !== 0n)
+  csrrs: function(csr_addr, rs1_val) {
+      let is_write = rs1_val !== 0n;
+      this.checkPermissions(csr_addr, is_write);
+      let old_val = this.read(csr_addr);
+      if (is_write) { 
+          this.write(csr_addr, old_val | rs1_val);
+      }
+      return old_val;
+  },
+
+  // csrrc: Only writes if rs1 is NOT x0 (val !== 0n)
+  csrrc: function(csr_addr, rs1_val) {
+      let is_write = rs1_val !== 0n;
+      this.checkPermissions(csr_addr, is_write);
+      let old_val = this.read(csr_addr);
+      if (is_write) {
+          this.write(csr_addr, old_val & ~rs1_val);
+      }
+      return old_val;
+  },
+
+  // csrrwi: Always writes to the CSR, even if zimm is 0
+  csrrwi: function(csr_addr, zimm) {
+      this.checkPermissions(csr_addr, true);
+      let old_val = this.read(csr_addr);
+      this.write(csr_addr, BigInt(zimm));
+      return old_val;
+  },
+
+  // csrrsi: Only writes if immediate is NOT 0
+  csrrsi: function(csr_addr, zimm) {
+      let imm_val = BigInt(zimm);
+      let is_write = imm_val !== 0n;
+      this.checkPermissions(csr_addr, is_write);
+      let old_val = this.read(csr_addr);
+      if (is_write) {
+          this.write(csr_addr, old_val | imm_val);
+      }
+      return old_val;
+  },
+
+  // csrrci: Only writes if immediate is NOT 0
+  csrrci: function(csr_addr, zimm) {
+      let imm_val = BigInt(zimm);
+      let is_write = imm_val !== 0n;
+      this.checkPermissions(csr_addr, is_write);
+      let old_val = this.read(csr_addr);
+      if (is_write) {
+          this.write(csr_addr, old_val & ~imm_val);
+      }
+      return old_val;
   },
   // ==========================================
   // INTELLIGENT READ ROUTER
@@ -2611,63 +2682,11 @@ $.System.Zicsr = {
               State.csr.set(addr, val);
               break;
       }
-  },
+  }
 
   // ==========================================
   // INSTRUCTION EXECUTORS
   // ==========================================
-  
-  // csrrw: Read old value, write rs1 to CSR
-  csrrw: function(csr_addr, rs1_val) {
-      let old_val = this.read(csr_addr);
-      this.write(csr_addr, rs1_val);
-      return old_val; 
-  },
-
-  // csrrs: Read old value, Bitwise OR rs1 into CSR
-  csrrs: function(csr_addr, rs1_val) {
-      let old_val = this.read(csr_addr);
-      if (rs1_val !== 0n) { 
-          this.write(csr_addr, old_val | rs1_val);
-      }
-      return old_val;
-  },
-
-  // csrrc: Read old value, Bitwise Clear (AND NOT) rs1 from CSR
-  csrrc: function(csr_addr, rs1_val) {
-      let old_val = this.read(csr_addr);
-      if (rs1_val !== 0n) {
-          this.write(csr_addr, old_val & ~rs1_val);
-      }
-      return old_val;
-  },
-
-  // csrrwi: Read old value, write zimm to CSR
-  csrrwi: function(csr_addr, zimm) {
-      let old_val = this.read(csr_addr);
-      this.write(csr_addr, BigInt(zimm));
-      return old_val;
-  },
-
-  // csrrsi: Read old value, Bitwise OR zimm into CSR
-  csrrsi: function(csr_addr, zimm) {
-      let old_val = this.read(csr_addr);
-      let imm_val = BigInt(zimm);
-      if (imm_val !== 0n) {
-          this.write(csr_addr, old_val | imm_val);
-      }
-      return old_val;
-  },
-
-  // csrrci: Read old value, Bitwise Clear zimm from CSR
-  csrrci: function(csr_addr, zimm) {
-      let old_val = this.read(csr_addr);
-      let imm_val = BigInt(zimm);
-      if (imm_val !== 0n) {
-          this.write(csr_addr, old_val & ~imm_val);
-      }
-      return old_val;
-  }
 };
 
 $.State.prv = 3n; // Start in Machine mode (3=M, 1=S, 0=U)
@@ -4204,18 +4223,14 @@ RVALUATION64.handleCompressed = function(inst16) {
   else if (opcode === 0x2F) handler = this.Opcodes.ATOMICS;
   else if (opcode === 0x07 || opcode === 0x27 || opcode === 0x43 || opcode === 0x47 || opcode === 0x4B || opcode === 0x4F || opcode === 0x53) handler = this.Opcodes.FLOATING_POINT;
   else if (opcode === 0x0F || opcode === 0x73) handler = this.Opcodes.SYSTEM$MEMORY;
-
+    // Save the current PC before execution
+    let old_pc = this.cpu.State.pc;
   if (handler && handler[opcode]) {
-      // Save the current PC before execution
-      let old_pc = this.cpu.State.pc;
-      
       // Execute the expanded 32-bit instruction
       handler[opcode].call(this, inst32);
   } else {
       this.MMU.triggerTrap(2n, BigInt(inst16), false); 
-  }
-
-    // Correct the PC increment to +2 if the standard handler blindly did +4
+  }// Correct the PC increment to +2 if the standard handler blindly did +4
   if (this.cpu.State.pc === old_pc + 4n) {
     this.cpu.State.pc = old_pc + 2n;
   }
