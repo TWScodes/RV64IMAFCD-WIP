@@ -4,10 +4,6 @@ const buildS = (opcode, f3, rs1, rs2, imm)    => ((opcode | ((imm & 0x1F) << 7) 
 const buildB = (opcode, f3, rs1, rs2, imm)    => ((opcode | (((imm >> 11) & 1) << 7) | (((imm >> 1) & 0xF) << 8) | (f3 << 12) | (rs1 << 15) | (rs2 << 20) | (((imm >> 5) & 0x3F) << 25) | (((imm >> 12) & 1) << 31)) >>> 0);
 const buildU = (opcode, rd, imm)              => ((opcode | (rd << 7) | (imm & 0xFFFFF000)) >>> 0);
 const buildJ = (opcode, rd, imm)              => ((opcode | (rd << 7) | (((imm >> 12) & 0xFF) << 12) | (((imm >> 11) & 1) << 20) | (((imm >> 1) & 0x3FF) << 21) | (((imm >> 20) & 1) << 31)) >>> 0);
-
-
-
-
 const RV64IMAFDGCCPU = {
  // ==========================================
   // ARITHMETIC LOGIC UNIT (ALU)
@@ -44,10 +40,6 @@ const RV64IMAFDGCCPU = {
       mulw: null, divw: null, divuw: null, remw: null, remuw: null
     }
   },
-
-
-
-
   // ==========================================
   // LOAD/STORE UNIT (LSU)
   // Handles all memory reading, writing, and atomics
@@ -70,10 +62,6 @@ const RV64IMAFDGCCPU = {
       amominu_d: null, amomaxu_d: null
     }
   },
-
-
-
-
   // ==========================================
   // FLOATING-POINT ALU (FALU)
   // ==========================================
@@ -125,10 +113,6 @@ const RV64IMAFDGCCPU = {
       fcvt_l_h: null, fcvt_lu_h: null, fcvt_h_l: null, fcvt_h_lu: null
     }
   },
-
-
-
-
   // ==========================================
   // SYSTEM AND ENVIRONMENT
   // ==========================================
@@ -144,10 +128,6 @@ const RV64IMAFDGCCPU = {
       fence_i: null
     }
   },
-
-
-
-
   // ==========================================
   // COMPRESSED INSTRUCTIONS (C)
   // ==========================================
@@ -172,10 +152,6 @@ const RV64IMAFDGCCPU = {
       c_mv: null, c_nop: null, c_ebreak: null
     }
   },
-
-
-
-
   // ==========================================
   // ARCHITECTURAL STATE
   // ==========================================
@@ -193,19 +169,16 @@ const RV64IMAFDGCCPU = {
       [0x002, 0n], // frm (Floating-Point Dynamic Rounding Mode)
       [0x003, 0n], // fcsr (Floating-Point Control and Status)
 
-
       // Machine Information Registers (Typically Read-Only)
       [0xF11, 0n], // mvendorid (Vendor ID)
       [0xF12, 0n], // marchid (Architecture ID)
       [0xF13, 0n], // mimpid (Implementation ID)
       [0xF14, 0n], // mhartid (Hardware thread ID, usually 0 for single-core)
 
-
       // Machine Trap Setup
       [0x300, 0n], // mstatus (Machine status - globally enables/disables interrupts)
       [0x304, 0n], // mie (Machine interrupt enable - enables specific interrupts)
       [0x305, 0n], // mtvec (Machine trap-handler base vector)
-
 
       // Machine Trap Handling
       [0x340, 0n], // mscratch (Scratch register for OS context switching)
@@ -221,10 +194,6 @@ const RV64IMAFDGCCPU = {
       size: 0
     },
     isWaitingOnReservation: false,
-
-
-
-
     // ---------------------------------------------------------
     // ABI Mapping (How compilers actually talk to registers)
     // ---------------------------------------------------------
@@ -242,10 +211,6 @@ const RV64IMAFDGCCPU = {
       // More Temporaries
       t3: 28, t4: 29, t5: 30, t6: 31
     },
-
-
-
-
     F_ABI: {
       // Float Temporaries
       ft0: 0, ft1: 1, ft2: 2, ft3: 3, ft4: 4, ft5: 5, ft6: 6, ft7: 7,
@@ -258,7 +223,6 @@ const RV64IMAFDGCCPU = {
       // More Float Temporaries
       ft8: 28, ft9: 29, ft10: 30, ft11: 31
     },
-
 
     get_rm: function(inst_rm) {
       // If instruction rm is 7 (0b111), use the dynamic rounding mode from FCSR
@@ -279,9 +243,7 @@ const RV64IMAFDGCCPU = {
   }
 };
 
-
 let $ = RV64IMAFDGCCPU; // Shorthand for easier access in tests and implementation
-
 
 $.ALU.Base = {
   // ==========================================
@@ -303,12 +265,6 @@ $.ALU.Base = {
   andi: (rs1, imm) => BigInt.asIntN(64, rs1 & imm),
 
 
-
-
-
-
-
-
   // ==========================================
   // REGISTER-REGISTER ARITHMETIC (R-Type)
   // ==========================================
@@ -327,12 +283,6 @@ $.ALU.Base = {
   and: (rs1, rs2) => BigInt.asIntN(64, rs1 & rs2),
 
 
-
-
-
-
-
-
   // ==========================================
   // RV64 32-BIT WORD OPERATIONS
   // ==========================================
@@ -343,12 +293,6 @@ $.ALU.Base = {
   addiw: (rs1, imm) => BigInt.asIntN(32, rs1 + imm),
   addw:  (rs1, rs2) => BigInt.asIntN(32, rs1 + rs2),
   subw:  (rs1, rs2) => BigInt.asIntN(32, rs1 - rs2),
-
-
-
-
-
-
 
 
   // ==========================================
@@ -363,10 +307,6 @@ $.ALU.Base = {
   // Add Upper Immediate to PC: Sign-extend the 32-bit immediate and add to PC.
   auipc: (pc, imm) => pc + BigInt.asIntN(32, imm)
 };
-
-
-
-
 $.ALU.Shifts = {
   // ==========================================
   // 64-BIT SHIFTS
@@ -376,27 +316,13 @@ $.ALU.Shifts = {
   // Shift Left Logical
   slli: (rs1, shamt) => BigInt.asIntN(64, rs1 << (shamt & 0x3Fn)),
   sll:  (rs1, rs2)   => BigInt.asIntN(64, rs1 << (rs2 & 0x3Fn)),
-
-
-
-
   // Shift Right Logical (Zeros shift in from the left)
   // We force rs1 to be Unsigned so JS doesn't drag the sign bit down.
   srli: (rs1, shamt) => BigInt.asIntN(64, BigInt.asUintN(64, rs1) >> (shamt & 0x3Fn)),
   srl:  (rs1, rs2)   => BigInt.asIntN(64, BigInt.asUintN(64, rs1) >> (rs2 & 0x3Fn)),
-
-
-
-
   // Shift Right Arithmetic (Sign bit copies itself inward)
   srai: (rs1, shamt) => BigInt.asIntN(64, rs1 >> (shamt & 0x3Fn)),
   sra:  (rs1, rs2)   => BigInt.asIntN(64, rs1 >> (rs2 & 0x3Fn)),
-
-
-
-
-
-
 
 
   // ==========================================
@@ -404,32 +330,17 @@ $.ALU.Shifts = {
   // Shift amount is masked to the lower 5 bits (& 0x1Fn)
   // Operates on 32-bits, then sign-extends to 64-bits
   // ==========================================
-
-
-
-
   // Word Shift Left Logical
   slliw: (rs1, shamt) => BigInt.asIntN(32, rs1 << (shamt & 0x1Fn)),
   sllw:  (rs1, rs2)   => BigInt.asIntN(32, rs1 << (rs2 & 0x1Fn)),
-
-
-
-
   // Word Shift Right Logical
   srliw: (rs1, shamt) => BigInt.asIntN(32, BigInt.asUintN(32, rs1) >> (shamt & 0x1Fn)),
   srlw:  (rs1, rs2)   => BigInt.asIntN(32, BigInt.asUintN(32, rs1) >> (rs2 & 0x1Fn)),
-
-
-
-
   // Word Shift Right Arithmetic
   // We force rs1 to 32-bit signed so the 32nd bit acts as the sign bit during the shift.
   sraiw: (rs1, shamt) => BigInt.asIntN(32, BigInt.asIntN(32, rs1) >> (shamt & 0x1Fn)),
   sraw:  (rs1, rs2)   => BigInt.asIntN(32, BigInt.asIntN(32, rs1) >> (rs2 & 0x1Fn))
 };
-
-
-
 
 $.ALU.Jumps = {
   // ==========================================
@@ -437,19 +348,11 @@ $.ALU.Jumps = {
   // These return an object containing the new PC value
   // and the return address to be saved in the 'rd' register.
   // ==========================================
-
-
-
-
   // Jump and Link: Target is PC + immediate.
   jal: (pc, imm) => ({
     rd_val: pc + 4n, // The return address (the instruction after the jump)
     new_pc: BigInt.asIntN(64, pc + imm)
   }),
-
-
-
-
   // Jump and Link Register: Target is rs1 + immediate.
   // RISC-V hardware specifically sets the least-significant bit to 0 for JALR.
   // We use `& ~1n` (bitwise AND with everything-but-the-last-bit) to force it to 0.
@@ -458,10 +361,6 @@ $.ALU.Jumps = {
     new_pc: BigInt.asIntN(64, (rs1 + imm) & ~1n)
   })
 };
-
-
-
-
 $.ALU.Branches = {
   // ==========================================
   // CONDITIONAL BRANCHES
@@ -469,63 +368,31 @@ $.ALU.Branches = {
   // return a boolean (true if branch taken, false if not).
   // The CPU will then do: if (taken) PC = PC + imm; else PC = PC + 4;
   // ==========================================
-
-
-
-
   // Equality
   beq: (rs1, rs2) => rs1 === rs2,
   bne: (rs1, rs2) => rs1 !== rs2,
-
-
-
-
   // Signed Comparisons (BigInt handles the sign naturally here)
   blt: (rs1, rs2) => rs1 < rs2,
   bge: (rs1, rs2) => rs1 >= rs2,
-
-
-
-
   // Unsigned Comparisons (We must force them to 64-bit Unsigned first)
   bltu: (rs1, rs2) => BigInt.asUintN(64, rs1) < BigInt.asUintN(64, rs2),
   bgeu: (rs1, rs2) => BigInt.asUintN(64, rs1) >= BigInt.asUintN(64, rs2)
 };
-
-
-
-
 $.ALU.M = {
   // ==========================================
   // 64-BIT MULTIPLICATION
   // mulh, mulhu, and mulhsu return the UPPER 64 bits of a 128-bit product.
   // Because BigInt scales automatically, we just multiply and shift right by 64.
   // ==========================================
-
-
-
-
   // Lower 64 bits (Signed/Unsigned agnostic)
   mul: (rs1, rs2) => BigInt.asIntN(64, rs1 * rs2),
-
-
-
-
   // Upper 64 bits (Signed x Signed)
   mulh: (rs1, rs2) => BigInt.asIntN(64, (rs1 * rs2) >> 64n),
-
-
-
-
   // Upper 64 bits (Signed rs1 x Unsigned rs2)
   mulhsu: (rs1, rs2) => {
     let u_rs2 = BigInt.asUintN(64, rs2);
     return BigInt.asIntN(64, (rs1 * u_rs2) >> 64n);
   },
-
-
-
-
   // Upper 64 bits (Unsigned x Unsigned)
   mulhu: (rs1, rs2) => {
     let u_rs1 = BigInt.asUintN(64, rs1);
@@ -534,48 +401,26 @@ $.ALU.M = {
   },
 
 
-
-
-
-
-
-
   // ==========================================
   // 64-BIT DIVISION & REMAINDER
   // Must explicitly handle RISC-V zero and overflow rules.
   // MIN_INT64 is -9223372036854775808n
   // ==========================================
-
-
-
-
   div: (rs1, rs2) => {
     if (rs2 === 0n) return -1n;
     if (rs1 === -9223372036854775808n && rs2 === -1n) return rs1;
     return BigInt.asIntN(64, rs1 / rs2);
   },
-
-
-
-
   divu: (rs1, rs2) => {
     let u_rs1 = BigInt.asUintN(64, rs1), u_rs2 = BigInt.asUintN(64, rs2);
     if (u_rs2 === 0n) return -1n;
     return BigInt.asIntN(64, u_rs1 / u_rs2);
   },
-
-
-
-
   rem: (rs1, rs2) => {
     if (rs2 === 0n) return rs1;
     if (rs1 === -9223372036854775808n && rs2 === -1n) return 0n;
     return BigInt.asIntN(64, rs1 % rs2);
   },
-
-
-
-
   remu: (rs1, rs2) => {
     let u_rs1 = BigInt.asUintN(64, rs1), u_rs2 = BigInt.asUintN(64, rs2);
     if (u_rs2 === 0n) return rs1;
@@ -583,85 +428,47 @@ $.ALU.M = {
   },
 
 
-
-
-
-
-
-
   // ==========================================
   // 32-BIT WORD MULTIPLICATION & DIVISION (RV64)
   // Operates on 32-bits, then sign-extends to 64-bits
   // MIN_INT32 is -2147483648n
   // ==========================================
-
-
-
-
   mulw: (rs1, rs2) => BigInt.asIntN(32, rs1 * rs2),
-
-
-
-
   divw: (rs1, rs2) => {
     let s1 = BigInt.asIntN(32, rs1), s2 = BigInt.asIntN(32, rs2);
     if (s2 === 0n) return -1n;
     if (s1 === -2147483648n && s2 === -1n) return s1;
     return BigInt.asIntN(32, s1 / s2);
   },
-
-
-
-
   divuw: (rs1, rs2) => {
     let u1 = BigInt.asUintN(32, rs1), u2 = BigInt.asUintN(32, rs2);
     if (u2 === 0n) return -1n;
     // The spec requires sign-extending the 32-bit unsigned result!
     return BigInt.asIntN(32, u1 / u2);
   },
-
-
-
-
   remw: (rs1, rs2) => {
     let s1 = BigInt.asIntN(32, rs1), s2 = BigInt.asIntN(32, rs2);
     if (s2 === 0n) return s1;
     if (s1 === -2147483648n && s2 === -1n) return 0n;
     return BigInt.asIntN(32, s1 % s2);
   },
-
-
-
-
   remuw: (rs1, rs2) => {
     let u1 = BigInt.asUintN(32, rs1), u2 = BigInt.asUintN(32, rs2);
     if (u2 === 0n) return BigInt.asIntN(32, u1);
     return BigInt.asIntN(32, u1 % u2);
   }
 };
-
-
-
-
 $.LSU.Base = {
   // ==========================================
   // LOADS (I-Type)
   // Calculates: Address = rs1 + imm
   // Returns: The address, how many bytes to read, and if it needs sign-extension.
   // ==========================================
-
-
-
-
   // Load Byte, Halfword, Word, Doubleword (Signed)
   lb: (rs1, imm) => ({ addr: BigInt.asUintN(64, rs1 + imm), bytes: 1, signed: true }),
   lh: (rs1, imm) => ({ addr: BigInt.asUintN(64, rs1 + imm), bytes: 2, signed: true }),
   lw: (rs1, imm) => ({ addr: BigInt.asUintN(64, rs1 + imm), bytes: 4, signed: true }),
   ld: (rs1, imm) => ({ addr: BigInt.asUintN(64, rs1 + imm), bytes: 8, signed: true }),
-
-
-
-
   // Load Byte, Halfword, Word (Unsigned)
   // (Note: No 'ldu' because a 64-bit load fills the entire 64-bit register anyway)
   lbu: (rs1, imm) => ({ addr: BigInt.asUintN(64, rs1 + imm), bytes: 1, signed: false }),
@@ -669,21 +476,11 @@ $.LSU.Base = {
   lwu: (rs1, imm) => ({ addr: BigInt.asUintN(64, rs1 + imm), bytes: 4, signed: false }),
 
 
-
-
-
-
-
-
   // ==========================================
   // STORES (S-Type)
   // Calculates: Address = rs1 + imm
   // Returns: The address, how many bytes to write, and the cleanly masked value.
   // ==========================================
-
-
-
-
   // Store Byte, Halfword, Word, Doubleword
   // We use BigInt.asUintN to chop off the higher bits of rs2, making your
   // memory controller's job infinitely easier down the line!
@@ -711,10 +508,6 @@ $.LSU.Base = {
     value: BigInt.asUintN(64, rs2)
   })
 };
-
-
-
-
 function checkAligned(addr, bytes) {
   if (addr % BigInt(bytes) !== 0n) {
     // For Atomics, Load-Reserved, and Store-Conditional, a misaligned 
@@ -729,7 +522,6 @@ function checkAligned(addr, bytes) {
     throw new Error("Trap: Store/AMO Address Misaligned"); 
   }
 }
-
 
 $.LSU.A = {
   // ==========================================
@@ -751,10 +543,6 @@ $.LSU.A = {
     checkAligned(rs1, 8);
     return { type: 'SC', addr: rs1, bytes: 8, value: BigInt.asUintN(64, rs2) };
   },
-
-
-
-
   // ==========================================
   // ZACAS: ATOMIC COMPARE-AND-SWAP
   // Note: Requires passing the current value of 'rd' as an argument!
@@ -775,10 +563,6 @@ $.LSU.A = {
       return (m === r) ? BigInt.asUintN(64, rs2) : m;
     }};
   },
-
-
-
-
   // ==========================================
   // ZABHA: BYTE ATOMICS (.b)
   // Operates on 8-bit values, sign-extends result to 64-bits
@@ -792,10 +576,6 @@ $.LSU.A = {
   amomax_b:  (rs1, rs2) => ({ type: 'AMO', addr: rs1, bytes: 1, signed: true, op: (mem) => (BigInt.asIntN(8, mem) > BigInt.asIntN(8, rs2)) ? mem : rs2 }),
   amominu_b: (rs1, rs2) => ({ type: 'AMO', addr: rs1, bytes: 1, signed: true, op: (mem) => (BigInt.asUintN(8, mem) < BigInt.asUintN(8, rs2)) ? mem : rs2 }),
   amomaxu_b: (rs1, rs2) => ({ type: 'AMO', addr: rs1, bytes: 1, signed: true, op: (mem) => (BigInt.asUintN(8, mem) > BigInt.asUintN(8, rs2)) ? mem : rs2 }),
-
-
-
-
   // ==========================================
   // ZABHA: HALFWORD ATOMICS (.h)
   // Operates on 16-bit values, sign-extends result to 64-bits
@@ -809,10 +589,6 @@ $.LSU.A = {
   amomax_h:  (rs1, rs2) => { checkAligned(rs1, 2); return { type: 'AMO', addr: rs1, bytes: 2, signed: true, op: (mem) => (BigInt.asIntN(16, mem) > BigInt.asIntN(16, rs2)) ? mem : rs2 }; },
   amominu_h: (rs1, rs2) => { checkAligned(rs1, 2); return { type: 'AMO', addr: rs1, bytes: 2, signed: true, op: (mem) => (BigInt.asUintN(16, mem) < BigInt.asUintN(16, rs2)) ? mem : rs2 }; },
   amomaxu_h: (rs1, rs2) => { checkAligned(rs1, 2); return { type: 'AMO', addr: rs1, bytes: 2, signed: true, op: (mem) => (BigInt.asUintN(16, mem) > BigInt.asUintN(16, rs2)) ? mem : rs2 }; },
-
-
-
-
   // ==========================================
   // WORD ATOMICS (.w)
   // ==========================================
@@ -825,10 +601,6 @@ $.LSU.A = {
   amomax_w:  (rs1, rs2) => { checkAligned(rs1, 4); return { type: 'AMO', addr: rs1, bytes: 4, signed: true, op: (mem) => (BigInt.asIntN(32, mem) > BigInt.asIntN(32, rs2)) ? mem : rs2 }; },
   amominu_w: (rs1, rs2) => { checkAligned(rs1, 4); return { type: 'AMO', addr: rs1, bytes: 4, signed: true, op: (mem) => (BigInt.asUintN(32, mem) < BigInt.asUintN(32, rs2)) ? mem : rs2 }; },
   amomaxu_w: (rs1, rs2) => { checkAligned(rs1, 4); return { type: 'AMO', addr: rs1, bytes: 4, signed: true, op: (mem) => (BigInt.asUintN(32, mem) > BigInt.asUintN(32, rs2)) ? mem : rs2 }; },
-
-
-
-
   // ==========================================
   // DOUBLEWORD ATOMICS (.d)
   // ==========================================
@@ -842,20 +614,12 @@ $.LSU.A = {
   amominu_d: (rs1, rs2) => { checkAligned(rs1, 8); return { type: 'AMO', addr: rs1, bytes: 8, signed: true, op: (mem) => (BigInt.asUintN(64, mem) < BigInt.asUintN(64, rs2)) ? mem : rs2 }; },
   amomaxu_d: (rs1, rs2) => { checkAligned(rs1, 8); return { type: 'AMO', addr: rs1, bytes: 8, signed: true, op: (mem) => (BigInt.asUintN(64, mem) > BigInt.asUintN(64, rs2)) ? mem : rs2 }; }
 };
-
-
-
-
 // Performs infinitely precise IEEE-754 32-bit FMA matching SoftFloat
 function exact_f32_mulAdd(uiA, uiB, uiC, op) {
     // Force inputs to 32-bit unsigned integers
     uiA = Number(BigInt(uiA) & 0xFFFFFFFFn) >>> 0;
     uiB = Number(BigInt(uiB) & 0xFFFFFFFFn) >>> 0;
     uiC = Number(BigInt(uiC) & 0xFFFFFFFFn) >>> 0;
-
-
-
-
     // Helper to unpack F32 into exact integer mantissa and shifted exponent
     function unpackF32(ui) {
         let sign = (ui >>> 31) === 1 ? -1 : 1;
@@ -871,29 +635,13 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
         // Normal: Add hidden bit (0x800000)
         return { sign, mant: BigInt(f | 0x800000), exp: e - 127 - 23, isNaN: false, isInf: false, isZero: false };
     }
-
-
-
-
     const A = unpackF32(uiA);
     const B = unpackF32(uiB);
     const C = unpackF32(uiC);
-
-
-
-
     // op: 0 = fmadd, 1 = fmsubC, 2 = fnmsubProd, 3 = fnmadd
     let sProd = A.sign * B.sign * ((op === 2 || op === 3) ? -1 : 1);
     let sC = C.sign * ((op === 1 || op === 3) ? -1 : 1);
-
-
-
-
     const defaultNaN = 0x7FC00000; // RISC-V Canonical NaN
-
-
-
-
     // --- Special Cases ---
     if (A.isNaN || B.isNaN || C.isNaN) return defaultNaN;
     if ((A.isInf && B.isZero) || (A.isZero && B.isInf)) return defaultNaN;
@@ -904,19 +652,11 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
         return sProd === -1 ? 0xFF800000 : 0x7F800000;
     }
     if (C.isInf) return sC === -1 ? 0xFF800000 : 0x7F800000;
-
-
-
-
     let prodIsZero = A.isZero || B.isZero;
     if (prodIsZero && C.isZero) {
         if (sProd === sC) return sProd === -1 ? 0x80000000 : 0x00000000;
         return 0x00000000; // IEEE 754: x + (-x) = +0 for round-to-nearest
     }
-
-
-
-
     // --- Infinite Precision Arithmetic ---
     let M_prod = prodIsZero ? 0n : A.mant * B.mant;
     let P_prod = A.exp + B.exp;
@@ -927,31 +667,15 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
     let P_res = Math.min(P_prod, P_C);
     if (!prodIsZero && P_prod > P_res) M_prod <<= BigInt(P_prod - P_res);
     if (!C.isZero && P_C > P_res) M_C <<= BigInt(P_C - P_res);
-
-
-
-
     let val_prod = sProd === -1 ? -M_prod : M_prod;
     let val_C = sC === -1 ? -M_C : M_C;
-
-
-
-
     let res_mant = val_prod + val_C;
     if (res_mant === 0n) return 0x00000000;
-
-
-
-
     let res_sign = 1;
     if (res_mant < 0n) {
         res_sign = -1;
         res_mant = -res_mant; // abs
     }
-
-
-
-
     // --- Normalization & Rounding ---
     let mant_len = res_mant.toString(2).length;
     let shift = mant_len - 24; // Target is exactly 24 bits
@@ -972,10 +696,6 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
     } else if (shift < 0) {
         sig = res_mant << BigInt(-shift);
     }
-
-
-
-
     // Handle Subnormals / Underflow
     if (stored_e <= 0) {
         let sub_shift = 1 - stored_e;
@@ -1002,15 +722,10 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
     } else if (stored_e >= 0xFF) {
         return (res_sign === -1 ? 0x80000000 : 0) | 0x7F800000; // Overflow to Inf
     }
-
-
-
-
     // Round to Nearest, Ties to Even
     // --- IEEE 754 Universal Rounding ---
     let do_increment = false;
     let is_neg = (res_sign === -1);
-
 
     switch (rm) {
       case 0: // RNE (Round to Nearest, ties to Even)
@@ -1032,7 +747,6 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
             throw new Error("Invalid rounding mode: " + rm);
     }
 
-
     if (do_increment) {
         sig += 1n;
     }
@@ -1045,10 +759,6 @@ function exact_f32_mulAdd(uiA, uiB, uiC, op) {
     } else if (stored_e === 0 && sig === 0x800000n) {
         stored_e = 1; // Subnormal rounded up to lowest normal
     }
-
-
-
-
     // --- Pack IEEE 754 ---
     let f = Number(sig) & 0x7FFFFF;
     let final_ui = (res_sign === -1 ? 0x80000000 : 0) | (stored_e << 23) | f;
@@ -1059,16 +769,13 @@ function exact_f32_add(uiA, uiB, rm) {
   return exact_f32_mulAdd(uiA, 0x3F800000, uiB, 0, rm);
 }
 
-
 function exact_f32_sub(uiA, uiB, rm) {
   return exact_f32_mulAdd(uiA, 0x3F800000, uiB, 1, rm);
 }
 
-
 function exact_f32_mul(uiA, uiB, rm) {
   return exact_f32_mulAdd(uiA, uiB, 0x00000000, 0, rm);
 }
-
 
 // ============================================================================
 // 4. DIVISION
@@ -1078,20 +785,16 @@ function exact_f32_div(uiA, uiB, rm) {
   uiA = Number(BigInt(uiA) & 0xFFFFFFFFn) >>> 0;
   uiB = Number(BigInt(uiB) & 0xFFFFFFFFn) >>> 0;
 
-
   let signA = (uiA >>> 31) & 1;
   let expA = (uiA >>> 23) & 0xFF;
   let sigA = uiA & 0x7FFFFF;
-
 
   let signB = (uiB >>> 31) & 1;
   let expB = (uiB >>> 23) & 0xFF;
   let sigB = uiB & 0x7FFFFF;
 
-
   let signZ = signA ^ signB;
   const defaultNaN = 0x7FC00000;
-
 
   // --- NaNs and Infinities ---
   if (expA === 0xFF) {
@@ -1106,7 +809,6 @@ function exact_f32_div(uiA, uiB, rm) {
       if (sigB !== 0) return defaultNaN; // B is NaN
       return (signZ << 31) >>> 0; // Normal / Inf = 0
   }
-
 
   // --- Zeros and Subnormals ---
   if (expB === 0) {
@@ -1125,12 +827,10 @@ function exact_f32_div(uiA, uiB, rm) {
       sigA &= 0x7FFFFF;
   }
 
-
   // --- Infinite Precision Division ---
   let expZ = expA - expB + 126;
   let mantA = BigInt(sigA | 0x800000);
   let mantB = BigInt(sigB | 0x800000);
-
 
   // Shift A way up so we have plenty of fractional bits for division
   // We need 24 bits for the mantissa + 2 for rounding/sticky = 26 bits
@@ -1141,15 +841,12 @@ function exact_f32_div(uiA, uiB, rm) {
       mantA <<= 25n;
   }
 
-
   let sigZ = mantA / mantB;
   let remainder = mantA % mantB;
-
 
   let sticky = remainder !== 0n ? 1n : 0n;
   let round_bit = sigZ & 1n;
   sigZ >>= 1n; // Shift out the round bit to get exactly 24 bits
-
 
   // --- Subnormal Result Handling ---
   if (expZ <= 0) {
@@ -1173,11 +870,9 @@ function exact_f32_div(uiA, uiB, rm) {
       expZ = 0;
   }
 
-
   // --- IEEE 754 Universal Rounding ---
   let do_increment = false;
   let is_neg = (signZ === 1);
-
 
   switch (rm) {
       case 0: // RNE (Round to Nearest, ties to Even)
@@ -1199,11 +894,9 @@ function exact_f32_div(uiA, uiB, rm) {
           throw new Error("Invalid rounding mode: " + rm);
   }
 
-
   if (do_increment) {
       sigZ += 1n;
   }
-
 
   // --- Overflow Check Post-Rounding ---
   if (sigZ >= 0x1000000n) {
@@ -1213,18 +906,15 @@ function exact_f32_div(uiA, uiB, rm) {
       expZ = 1;
   }
 
-
   if (expZ >= 0xFF) {
       return ((signZ << 31) | 0x7F800000) >>> 0; // Overflow to Infinity
   }
-
 
   // --- Pack Final Result ---
   let f = Number(sigZ) & 0x7FFFFF;
   let final_ui = (signZ << 31) | (expZ << 23) | f;
   return final_ui >>> 0;
 }
-
 
 // ============================================================================
 // 5. SQUARE ROOT
@@ -1235,14 +925,11 @@ function exact_f32_div(uiA, uiB, rm) {
 function exact_f32_sqrt(uiA, rm) {
   uiA = Number(BigInt(uiA) & 0xFFFFFFFFn) >>> 0;
 
-
   let signA = (uiA >>> 31) & 1;
   let expA = (uiA >>> 23) & 0xFF;
   let sigA = uiA & 0x7FFFFF;
 
-
   const defaultNaN = 0x7FC00000;
-
 
   // --- 1. Special Cases (Matches SoftFloat) ---
   if (expA === 0xFF) {
@@ -1256,7 +943,6 @@ function exact_f32_sqrt(uiA, rm) {
   }
   if (expA === 0 && sigA === 0) return 0x00000000; // +0.0 -> +0.0
 
-
   // --- 2. Normalize Subnormals ---
   let actual_exp = expA === 0 ? -126 : expA - 127;
   if (expA === 0) {
@@ -1265,7 +951,6 @@ function exact_f32_sqrt(uiA, rm) {
           actual_exp--;
       }
   }
-
 
   // --- 3. Align for Integer Square Root ---
   // We align the mantissa so our result gives us ~26 bits (24 for mantissa + round + sticky).
@@ -1287,11 +972,9 @@ function exact_f32_sqrt(uiA, rm) {
   while (Z * Z > M_shifted) Z--;
   while ((Z + 1n) * (Z + 1n) <= M_shifted) Z++;
 
-
   // --- 5. Remainder & Sticky Bit ---
   let remainder = M_shifted - Z * Z;
   let sticky = remainder !== 0n ? 1n : 0n;
-
 
   // --- 6. Shift down to exactly 24 bits ---
   // Z will be 26 bits if shifted by 28, or 27 bits if shifted by 29.
@@ -1306,7 +989,6 @@ function exact_f32_sqrt(uiA, rm) {
   
   // The new exponent is halved (square root halves exponents)
   let expZ = Math.floor(actual_exp / 2) + 127;
-
 
   // --- 7. IEEE 754 Universal Rounding ---
   let do_increment = false;
@@ -1340,7 +1022,6 @@ function exact_f32_sqrt(uiA, rm) {
       }
   }
 
-
   // Note: Square root cannot possibly underflow to a subnormal!
   // Smallest subnormal float is 2^-149. Sqrt(2^-149) is ~ 2^-75, which is highly normalized!
   
@@ -1351,21 +1032,17 @@ function exact_f32_sqrt(uiA, rm) {
   return final_ui >>> 0;
 }
 
-
 // ============================================================================
 // 6. MINIMUM & MAXIMUM
 // ============================================================================
-
 
 function exact_fmin_s(uiA, uiB) {
   uiA = Number(BigInt(uiA) & 0xFFFFFFFFn) >>> 0;
   uiB = Number(BigInt(uiB) & 0xFFFFFFFFn) >>> 0;
 
-
   // Detect NaNs (Exponent = 0xFF, Fraction != 0)
   let isNanA = ((uiA & 0x7F800000) === 0x7F800000) && ((uiA & 0x007FFFFF) !== 0);
   let isNanB = ((uiB & 0x7F800000) === 0x7F800000) && ((uiB & 0x007FFFFF) !== 0);
-
 
   // If both are NaN, return canonical NaN
   if (isNanA && isNanB) return 0x7FC00000;
@@ -1373,7 +1050,6 @@ function exact_fmin_s(uiA, uiB) {
   // If only one is NaN, return the other (IEEE 754 minNum behavior)
   if (isNanA) return uiB;
   if (isNanB) return uiA;
-
 
   // Use Float32Array to do native IEEE 754 comparisons safely
   let f32 = new Float32Array(2);
@@ -1384,28 +1060,23 @@ function exact_fmin_s(uiA, uiB) {
   // Extract sign bit of A
   let signA = (uiA >>> 31) & 1;
 
-
   // less = f32_lt_quiet(A, B) || (f32_eq(A, B) && (A.v & F32_SIGN))
   let less = (f32[0] < f32[1]) || (f32[0] === f32[1] && signA === 1);
   
   return less ? uiA : uiB;
 }
 
-
 function exact_fmax_s(uiA, uiB) {
   uiA = Number(BigInt(uiA) & 0xFFFFFFFFn) >>> 0;
   uiB = Number(BigInt(uiB) & 0xFFFFFFFFn) >>> 0;
 
-
   let isNanA = ((uiA & 0x7F800000) === 0x7F800000) && ((uiA & 0x007FFFFF) !== 0);
   let isNanB = ((uiB & 0x7F800000) === 0x7F800000) && ((uiB & 0x007FFFFF) !== 0);
-
 
   if (isNanA && isNanB) return 0x7FC00000;
   
   if (isNanA) return uiB;
   if (isNanB) return uiA;
-
 
   let f32 = new Float32Array(2);
   let u32 = new Uint32Array(f32.buffer);
@@ -1415,18 +1086,15 @@ function exact_fmax_s(uiA, uiB) {
   // Extract sign bit of B
   let signB = (uiB >>> 31) & 1;
 
-
   // greater = f32_lt_quiet(B, A) || (f32_eq(B, A) && (B.v & F32_SIGN))
   let greater = (f32[1] < f32[0]) || (f32[0] === f32[1] && signB === 1);
   
   return greater ? uiA : uiB;
 }
 
-
 // Add these helpers near your FALU code if you haven't already
 const f32_view = new Float32Array(1);
 const u32_view = new Uint32Array(f32_view.buffer);
-
 
 // Safely extracts a 32-bit float from a 64-bit NaN-boxed register
 function unbox_f32(rs1) {
@@ -1439,7 +1107,6 @@ function unbox_f32(rs1) {
   u32_view[0] = Number(rs1 & 0xFFFFFFFFn);
   return f32_view[0];
 }
-
 
 // Universal IEEE-754 Float-to-Integer Rounding
 function round_float_to_int(f, rm) {
@@ -1470,7 +1137,6 @@ function round_float_to_int(f, rm) {
           throw new Error("Invalid rounding mode: " + rm);
   }
 }
-
 
 // Helper for exact 64-bit Integer to 32-bit Float Conversion
 function exact_u64_to_f32_core(val, is_neg, rm) {
@@ -1519,7 +1185,6 @@ function exact_u64_to_f32_core(val, is_neg, rm) {
           throw new Error("Invalid rounding mode: " + rm);
   }
 
-
   if (do_increment) {
       sig += 1n;
       if (sig >= 0x1000000n) { // Carry overflowed the mantissa
@@ -1535,7 +1200,6 @@ function exact_u64_to_f32_core(val, is_neg, rm) {
   return final_ui >>> 0;
 }
 
-
 function exact_i64_to_f32(int_val, rm) {
   if (int_val === 0n) return 0x00000000;
   
@@ -1547,22 +1211,16 @@ function exact_i64_to_f32(int_val, rm) {
   return exact_u64_to_f32_core(int_val, is_neg, rm);
 }
 
-
 function exact_ui64_to_f32(uint_val, rm) {
   if (uint_val === 0n) return 0x00000000;
   return exact_u64_to_f32_core(uint_val, false, rm);
 }
-
 
 $.FALU.F = {
   // ==========================================
   // FLOATING-POINT LOADS & STORES (F Extension)
   // Calculates: Address = rs1 + imm
   // ==========================================
-
-
-
-
   // Floating-point Load Word (32-bit)
   // CRITICAL: Your memory write-back stage MUST NaN-box the 32-bit result
   // before writing it to f_ram. (e.g., loaded_val | 0xFFFFFFFF00000000n)
@@ -1579,19 +1237,16 @@ $.FALU.F = {
     value: BigInt.asUintN(32, rs2)
   }),
 
-
   fmadd_s:  (rs1, rs2, rs3, rm) => BigInt(exact_f32_mulAdd(rs1, rs2, rs3, 0, rm)) | 0xFFFFFFFF00000000n,
   fmsub_s:  (rs1, rs2, rs3, rm) => BigInt(exact_f32_mulAdd(rs1, rs2, rs3, 1, rm)) | 0xFFFFFFFF00000000n,
   fnmsub_s: (rs1, rs2, rs3, rm) => BigInt(exact_f32_mulAdd(rs1, rs2, rs3, 2, rm)) | 0xFFFFFFFF00000000n,
   fnmadd_s: (rs1, rs2, rs3, rm) => BigInt(exact_f32_mulAdd(rs1, rs2, rs3, 3, rm)) | 0xFFFFFFFF00000000n,
-
 
   fadd_s: (rs1, rs2, rm) => BigInt(exact_f32_add(rs1, rs2, rm)) | 0xFFFFFFFF00000000n,
   fsub_s: (rs1, rs2, rm) => BigInt(exact_f32_sub(rs1, rs2, rm)) | 0xFFFFFFFF00000000n,
   fmul_s: (rs1, rs2, rm) => BigInt(exact_f32_mul(rs1, rs2, rm)) | 0xFFFFFFFF00000000n,
   fdiv_s: (rs1, rs2, rm) => BigInt(exact_f32_div(rs1, rs2, rm)) | 0xFFFFFFFF00000000n,
   fsqrt_s: (rs1, rm) => BigInt(exact_f32_sqrt(rs1, rm)) | 0xFFFFFFFF00000000n,
-
 
   fsgnj_s: (rs1, rs2) => {
     let sign = rs2 & 0x80000000n;          // Extract bit 31 of rs2
@@ -1624,7 +1279,6 @@ $.FALU.F = {
   // Result is written to the Integer Register File (x_ram)
   // ==========================================
 
-
   // Convert Float to Signed 32-bit Int
   fcvt_w_s: (rs1, rm) => {
     let f = unbox_f32(rs1);
@@ -1641,7 +1295,6 @@ $.FALU.F = {
     return BigInt.asIntN(32, BigInt(rounded));
   },
 
-
   // Convert Float to Unsigned 32-bit Int
   fcvt_wu_s: (rs1, rm) => {
     let f = unbox_f32(rs1);
@@ -1657,15 +1310,10 @@ $.FALU.F = {
     // Spec mandates the 32-bit unsigned result is STILL sign-extended to 64-bits
     return BigInt.asIntN(32, BigInt(rounded));
   },
-
-
-
-
   // ==========================================
   // INTEGER TO FLOAT CONVERSIONS
   // Result is written to the Float Register File (f_ram)
   // ==========================================
-
 
   // Convert Signed 32-bit Int to Float
   // Convert Signed 32-bit Int to Float
@@ -1680,7 +1328,6 @@ $.FALU.F = {
     return BigInt(res32) | 0xFFFFFFFF00000000n;
   },
 
-
   // Convert Unsigned 32-bit Int to Float
   fcvt_s_wu: (rs1, rm) => {
     // Read lower 32 bits as unsigned
@@ -1691,11 +1338,9 @@ $.FALU.F = {
     return BigInt(res32) | 0xFFFFFFFF00000000n;
   },
 
-
   // ==========================================
   // FLOATING-POINT / INTEGER REGISTER MOVES
   // ==========================================
-
 
   // Move from Float to Integer (RV64)
   // Extracts the lower 32 bits of the float register and sign-extends it
@@ -1704,7 +1349,6 @@ $.FALU.F = {
     return BigInt.asIntN(32, rs1);
   },
 
-
   // Move from Integer to Float
   // Extracts the lower 32 bits of the integer register and NaN-boxes it
   // into the 64-bit floating-point register.
@@ -1712,12 +1356,10 @@ $.FALU.F = {
     return (rs1 & 0xFFFFFFFFn) | 0xFFFFFFFF00000000n;
   },
 
-
   // ==========================================
   // FLOATING-POINT COMPARES & CLASSIFY
   // Results are written to the Integer Register File (x_ram)
   // ==========================================
-
 
   // Floating-point Equal
   feq_s: (rs1, rs2) => {
@@ -1727,7 +1369,6 @@ $.FALU.F = {
     return (f1 === f2) ? 1n : 0n;
   },
 
-
   // Floating-point Less Than
   flt_s: (rs1, rs2) => {
     let f1 = unbox_f32(rs1);
@@ -1735,14 +1376,12 @@ $.FALU.F = {
     return (f1 < f2) ? 1n : 0n;
   },
 
-
   // Floating-point Less Than or Equal
   fle_s: (rs1, rs2) => {
     let f1 = unbox_f32(rs1);
     let f2 = unbox_f32(rs2);
     return (f1 <= f2) ? 1n : 0n;
   },
-
 
   // Floating-point Classify
   // Examines the value and sets exactly one bit in the integer result corresponding to the class
@@ -1783,12 +1422,7 @@ $.FALU.F = {
     
     return res;
   },
-
-
-
-
 }
-
 
 // Performs infinitely precise IEEE-754 64-bit FMA matching SoftFloat
 function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
@@ -1796,7 +1430,6 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
   uiA &= 0xFFFFFFFFFFFFFFFFn;
   uiB &= 0xFFFFFFFFFFFFFFFFn;
   uiC &= 0xFFFFFFFFFFFFFFFFn;
-
 
   // Helper to unpack F64 into exact integer mantissa and shifted exponent
   function unpackF64(ui) {
@@ -1814,19 +1447,15 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
       return { sign, mant: f | 0x10000000000000n, exp: e - 1023 - 52, isNaN: false, isInf: false, isZero: false };
   }
 
-
   const A = unpackF64(uiA);
   const B = unpackF64(uiB);
   const C = unpackF64(uiC);
-
 
   // op: 0 = fmadd, 1 = fmsub, 2 = fnmsub, 3 = fnmadd
   let sProd = A.sign * B.sign * ((op === 2 || op === 3) ? -1 : 1);
   let sC = C.sign * ((op === 1 || op === 3) ? -1 : 1);
 
-
   const defaultNaN = 0x7FF8000000000000n; // RISC-V Canonical NaN for RV64 D
-
 
   // --- Special Cases ---
   if (A.isNaN || B.isNaN || C.isNaN) return defaultNaN;
@@ -1839,14 +1468,12 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
   }
   if (C.isInf) return sC === -1 ? 0xFFF0000000000000n : 0x7FF0000000000000n;
 
-
   let prodIsZero = A.isZero || B.isZero;
   if (prodIsZero && C.isZero) {
       if (sProd === sC) return sProd === -1 ? 0x8000000000000000n : 0x0000000000000000n;
       // IEEE 754: x + (-x) = +0 for round-to-nearest. Only -0 for RDN (rm=2).
       return rm === 2 ? 0x8000000000000000n : 0x0000000000000000n; 
   }
-
 
   // --- Infinite Precision Arithmetic ---
   let M_prod = prodIsZero ? 0n : A.mant * B.mant;
@@ -1859,21 +1486,17 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
   if (!prodIsZero && P_prod > P_res) M_prod <<= BigInt(P_prod - P_res);
   if (!C.isZero && P_C > P_res) M_C <<= BigInt(P_C - P_res);
 
-
   let val_prod = sProd === -1 ? -M_prod : M_prod;
   let val_C = sC === -1 ? -M_C : M_C;
 
-
   let res_mant = val_prod + val_C;
   if (res_mant === 0n) return rm === 2 ? 0x8000000000000000n : 0x0000000000000000n;
-
 
   let res_sign = 1;
   if (res_mant < 0n) {
       res_sign = -1;
       res_mant = -res_mant; // abs
   }
-
 
   // --- Normalization & Rounding ---
   let mant_len = res_mant.toString(2).length;
@@ -1895,7 +1518,6 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
   } else if (shift < 0) {
       sig = res_mant << BigInt(-shift);
   }
-
 
   // Handle Subnormals / Underflow
   if (stored_e <= 0) {
@@ -1924,11 +1546,9 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
       return res_sign === -1 ? 0xFFF0000000000000n : 0x7FF0000000000000n; // Overflow to Inf
   }
 
-
   // --- IEEE 754 Universal Rounding ---
   let do_increment = false;
   let is_neg = (res_sign === -1);
-
 
   switch (rm) {
       case 0: // RNE
@@ -1950,7 +1570,6 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
           throw new Error("Invalid rounding mode: " + rm);
   }
 
-
   if (do_increment) {
       sig += 1n;
   }
@@ -1964,7 +1583,6 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
       stored_e = 1; // Subnormal rounded up to lowest normal
   }
 
-
   // --- Pack IEEE 754 ---
   let f = sig & 0xFFFFFFFFFFFFFn; // Mask out the hidden bit
   let final_ui = (res_sign === -1 ? 0x8000000000000000n : 0n) | (BigInt(stored_e) << 52n) | f;
@@ -1972,43 +1590,35 @@ function exact_f64_mulAdd(uiA, uiB, uiC, op, rm) {
   return final_ui;
 }
 
-
 function exact_f64_add(uiA, uiB, rm) {
   // A * 1.0 + B
   return exact_f64_mulAdd(uiA, 0x3FF0000000000000n, uiB, 0, rm);
 }
-
 
 function exact_f64_sub(uiA, uiB, rm) {
   // A * 1.0 - B
   return exact_f64_mulAdd(uiA, 0x3FF0000000000000n, uiB, 1, rm);
 }
 
-
 function exact_f64_mul(uiA, uiB, rm) {
   // A * B + 0.0
   return exact_f64_mulAdd(uiA, uiB, 0x0000000000000000n, 0, rm);
 }
 
-
 function exact_f64_div(uiA, uiB, rm) {
   uiA &= 0xFFFFFFFFFFFFFFFFn;
   uiB &= 0xFFFFFFFFFFFFFFFFn;
-
 
   let signA = (uiA >> 63n) & 1n;
   let expA = Number((uiA >> 52n) & 0x7FFn);
   let sigA = uiA & 0xFFFFFFFFFFFFFn;
 
-
   let signB = (uiB >> 63n) & 1n;
   let expB = Number((uiB >> 52n) & 0x7FFn);
   let sigB = uiB & 0xFFFFFFFFFFFFFn;
 
-
   let signZ = signA ^ signB;
   const defaultNaN = 0x7FF8000000000000n; // Canonical NaN for RV64 D
-
 
   // --- NaNs and Infinities ---
   if (expA === 0x7FF) {
@@ -2023,7 +1633,6 @@ function exact_f64_div(uiA, uiB, rm) {
       if (sigB !== 0n) return defaultNaN;
       return (signZ << 63n); // Normal / Inf = 0
   }
-
 
   // --- Zeros and Subnormals ---
   if (expB === 0) {
@@ -2040,12 +1649,10 @@ function exact_f64_div(uiA, uiB, rm) {
       sigA &= 0xFFFFFFFFFFFFFn;
   }
 
-
   // --- Infinite Precision Division ---
   let expZ = expA - expB + 1022; // Bias - 1
   let mantA = sigA | 0x10000000000000n;
   let mantB = sigB | 0x10000000000000n;
-
 
   // Shift A way up. Target: 52 bit mantissa + 2 for rounding/sticky = 54 bits
   if (mantA < mantB) {
@@ -2055,15 +1662,12 @@ function exact_f64_div(uiA, uiB, rm) {
       mantA <<= 54n;
   }
 
-
   let sigZ = mantA / mantB;
   let remainder = mantA % mantB;
-
 
   let sticky = remainder !== 0n ? 1n : 0n;
   let round_bit = sigZ & 1n;
   sigZ >>= 1n; 
-
 
   // --- Subnormal Result Handling ---
   if (expZ <= 0) {
@@ -2085,11 +1689,9 @@ function exact_f64_div(uiA, uiB, rm) {
       expZ = 0;
   }
 
-
   // --- IEEE 754 Universal Rounding ---
   let do_increment = false;
   let is_neg = (signZ === 1n);
-
 
   switch (rm) {
       case 0: if (round_bit === 1n && (sticky === 1n || (sigZ & 1n) === 1n)) do_increment = true; break;
@@ -2100,9 +1702,7 @@ function exact_f64_div(uiA, uiB, rm) {
       default: throw new Error("Invalid rounding mode");
   }
 
-
   if (do_increment) sigZ += 1n;
-
 
   // --- Overflow Check Post-Rounding ---
   if (sigZ >= 0x20000000000000n) { // 1 << 53
@@ -2112,14 +1712,11 @@ function exact_f64_div(uiA, uiB, rm) {
       expZ = 1;
   }
 
-
   if (expZ >= 0x7FF) return (signZ << 63n) | 0x7FF0000000000000n; // Overflow to Inf
-
 
   let f = sigZ & 0xFFFFFFFFFFFFFn;
   return (signZ << 63n) | (BigInt(expZ) << 52n) | f;
 }
-
 const exact_f64_sqrt = (function() {
   function bigint_isqrt(n) {
     if (n === 0n) return 0n;
@@ -2139,7 +1736,6 @@ const exact_f64_sqrt = (function() {
       let signA = (uiA >> 63n) & 1n;
       let expA = Number((uiA >> 52n) & 0x7FFn);
       let sigA = uiA & 0x000FFFFFFFFFFFFFn;
-
       if (expA === 0x7FF) {
           if (sigA !== 0n) return uiA | 0x0008000000000000n; 
           if (signA === 0n) return uiA; 
@@ -2150,7 +1746,6 @@ const exact_f64_sqrt = (function() {
           return 0x7FF8000000000000n; 
       }
       if (expA === 0 && sigA === 0n) return uiA; 
-
       let actual_exp = expA === 0 ? -1022 : expA - 1023;
       let M = sigA;
       if (expA === 0) {
@@ -2161,15 +1756,12 @@ const exact_f64_sqrt = (function() {
       } else {
           M |= 0x10000000000000n; 
       }
-
       if ((actual_exp & 1) !== 0) {
           M <<= 1n;
           actual_exp--;
       }
-
       let M_scaled = M << 106n;
       let z = bigint_isqrt(M_scaled);
-
       let shift_amt = 27n;
       let sigZ = z >> shift_amt;
       
@@ -2177,7 +1769,6 @@ const exact_f64_sqrt = (function() {
       let shifted_out = (z & ((1n << (shift_amt - 1n)) - 1n)) !== 0n;
       let rem = M_scaled - (z * z); 
       let sticky = shifted_out || (rem !== 0n);
-
       // --- Correct IEEE-754 Rounding based on resolved 'rm' ---
       let round_up = false;
       
@@ -2192,9 +1783,7 @@ const exact_f64_sqrt = (function() {
       } else if (rm === 4) { // RMM: Round to Max Magnitude
           if (round_bit === 1n) round_up = true;
       }
-
       let expZ = Math.floor(actual_exp / 2) + 1023;
-
       if (round_up) {
           sigZ++;
           if (sigZ >= 0x20000000000000n) {
@@ -2202,26 +1791,21 @@ const exact_f64_sqrt = (function() {
               expZ++;
           }
       }
-
       sigZ &= 0x000FFFFFFFFFFFFFn;
       return (signA << 63n) | (BigInt(expZ) << 52n) | sigZ;
   };
 })();
-
 // ============================================================================
 // EXACT DOUBLE-PRECISION MINIMUM & MAXIMUM
 // ============================================================================
-
 
 function exact_fmin_d(uiA, uiB) {
   uiA &= 0xFFFFFFFFFFFFFFFFn;
   uiB &= 0xFFFFFFFFFFFFFFFFn;
 
-
   // Detect NaNs (Exponent = 0x7FF, Fraction != 0)
   let isNanA = ((uiA & 0x7FF0000000000000n) === 0x7FF0000000000000n) && ((uiA & 0x000FFFFFFFFFFFFFn) !== 0n);
   let isNanB = ((uiB & 0x7FF0000000000000n) === 0x7FF0000000000000n) && ((uiB & 0x000FFFFFFFFFFFFFn) !== 0n);
-
 
   // If both are NaN, return canonical NaN (0x7FF8000000000000)
   if (isNanA && isNanB) return 0x7FF8000000000000n;
@@ -2229,7 +1813,6 @@ function exact_fmin_d(uiA, uiB) {
   // If only one is NaN, return the other (IEEE 754 minNum behavior)
   if (isNanA) return uiB;
   if (isNanB) return uiA;
-
 
   // Use Float64Array to do native IEEE 754 comparisons safely
   let f64 = new Float64Array(2);
@@ -2240,28 +1823,23 @@ function exact_fmin_d(uiA, uiB) {
   // Extract sign bit of A
   let signA = (uiA >> 63n) & 1n;
 
-
   // less = f64_lt_quiet(A, B) || (f64_eq(A, B) && (A.v & F64_SIGN))
   let less = (f64[0] < f64[1]) || (f64[0] === f64[1] && signA === 1n);
   
   return less ? uiA : uiB;
 }
 
-
 function exact_fmax_d(uiA, uiB) {
   uiA &= 0xFFFFFFFFFFFFFFFFn;
   uiB &= 0xFFFFFFFFFFFFFFFFn;
 
-
   let isNanA = ((uiA & 0x7FF0000000000000n) === 0x7FF0000000000000n) && ((uiA & 0x000FFFFFFFFFFFFFn) !== 0n);
   let isNanB = ((uiB & 0x7FF0000000000000n) === 0x7FF0000000000000n) && ((uiB & 0x000FFFFFFFFFFFFFn) !== 0n);
-
 
   if (isNanA && isNanB) return 0x7FF8000000000000n;
   
   if (isNanA) return uiB;
   if (isNanB) return uiA;
-
 
   let f64 = new Float64Array(2);
   let u64 = new BigUint64Array(f64.buffer);
@@ -2271,20 +1849,17 @@ function exact_fmax_d(uiA, uiB) {
   // Extract sign bit of B
   let signB = (uiB >> 63n) & 1n;
 
-
   // greater = f64_lt_quiet(B, A) || (f64_eq(B, A) && (B.v & F64_SIGN))
   let greater = (f64[1] < f64[0]) || (f64[0] === f64[1] && signB === 1n);
   
   return greater ? uiA : uiB;
 }
 
-
 function exact_f64_to_f32(uiA, rm) {
   uiA &= 0xFFFFFFFFFFFFFFFFn;
   let sign = (uiA >> 63n) & 1n;
   let exp = Number((uiA >> 52n) & 0x7FFn);
   let sig = uiA & 0xFFFFFFFFFFFFFn;
-
 
   // --- Special Cases ---
   if (exp === 0x7FF) {
@@ -2295,10 +1870,8 @@ function exact_f64_to_f32(uiA, rm) {
       return ((Number(sign) << 31) | 0) >>> 0; // Zero
   }
 
-
   let actual_exp = exp === 0 ? -1022 : exp - 1023;
   let mant = exp === 0 ? sig : (sig | 0x10000000000000n);
-
 
   // Single precision bias is 127. 
   // Shift down by 29 bits (52 - 23) to align the mantissas.
@@ -2312,7 +1885,6 @@ function exact_f64_to_f32(uiA, rm) {
       shift += (1 - target_exp);
       target_exp = 0;
   }
-
 
   if (shift > 54) {
       mant = 0n;
@@ -2329,13 +1901,11 @@ function exact_f64_to_f32(uiA, rm) {
       mant <<= BigInt(-shift);
   }
 
-
   let sig32 = mant;
   
   // --- IEEE 754 Universal Rounding ---
   let do_increment = false;
   let is_neg = (sign === 1n);
-
 
   switch (rm) {
       case 0: if (round_bit === 1n && (sticky === 1n || (sig32 & 1n) === 1n)) do_increment = true; break;
@@ -2345,7 +1915,6 @@ function exact_f64_to_f32(uiA, rm) {
       case 4: if (round_bit === 1n) do_increment = true; break;
       default: throw new Error("Invalid rounding mode: " + rm);
   }
-
 
   if (do_increment) {
       sig32 += 1n;
@@ -2357,17 +1926,14 @@ function exact_f64_to_f32(uiA, rm) {
       target_exp = 1; // Subnormal rounded up to lowest normal
   }
 
-
   // Overflow to Infinity check
   if (target_exp >= 0xFF) {
       return ((Number(sign) << 31) | 0x7F800000) >>> 0;
   }
 
-
   let f = Number(sig32) & 0x7FFFFF;
   return ((Number(sign) << 31) | (target_exp << 23) | f) >>> 0;
 }
-
 
 function exact_f32_to_f64(rs1) {
   // Unbox extracts the 32-bit float safely, returning JS NaN if it's invalid
@@ -2383,7 +1949,6 @@ function exact_f32_to_f64(rs1) {
   return u64_arr[0];
 }
 
-
 // Quick helper to read 64-bit register cleanly into JS native Double
 function get_f64_as_number(rs1) {
   let f64 = new Float64Array(1);
@@ -2391,7 +1956,6 @@ function get_f64_as_number(rs1) {
   u64[0] = rs1 & 0xFFFFFFFFFFFFFFFFn;
   return f64[0];
 }
-
 
 // ============================================================================
 // EXACT 64-BIT FLOAT TO 64-BIT INTEGER CONVERSIONS
@@ -2402,7 +1966,6 @@ function exact_f64_to_int(rs1, rm, isUnsigned) {
   let exp = Number((rs1 >> 52n) & 0x7FFn);
   let sig = rs1 & 0xFFFFFFFFFFFFFn;
 
-
   // --- Special Cases & Saturation Rules ---
   if (exp === 0x7FF) { // NaN or Infinity
       if (sig !== 0n) return isUnsigned ? 0xFFFFFFFFFFFFFFFFn : 0x7FFFFFFFFFFFFFFFn; // NaN -> Max
@@ -2412,19 +1975,15 @@ function exact_f64_to_int(rs1, rm, isUnsigned) {
   }
   if (exp === 0 && sig === 0n) return 0n;
 
-
   let actual_exp = exp === 0 ? -1022 : exp - 1023;
   let mant = exp === 0 ? sig : (sig | 0x10000000000000n);
-
 
   // Shift the 52-bit fractional mantissa to find the integer value
   let shift = 52 - actual_exp;
 
-
   let res_int = 0n;
   let round_bit = 0n;
   let sticky = 0n;
-
 
   if (shift > 65) {
       res_int = 0n;
@@ -2441,10 +2000,8 @@ function exact_f64_to_int(rs1, rm, isUnsigned) {
       res_int = mant << BigInt(-shift); // Number is > 2^52, shift left
   }
 
-
   let is_neg = (sign === 1n);
   let do_increment = false;
-
 
   // --- Universal IEEE 754 Integer Rounding ---
   switch (rm) {
@@ -2456,10 +2013,8 @@ function exact_f64_to_int(rs1, rm, isUnsigned) {
       default: throw new Error("Invalid rounding mode: " + rm);
   }
 
-
   if (do_increment) res_int += 1n;
   if (is_neg) res_int = -res_int;
-
 
   // --- RISC-V Strict Bounds Checking ---
   if (isUnsigned) {
@@ -2472,7 +2027,6 @@ function exact_f64_to_int(rs1, rm, isUnsigned) {
       return BigInt.asIntN(64, res_int);
   }
 }
-
 
 // ============================================================================
 // EXACT 64-BIT INTEGER TO 64-BIT FLOAT CONVERSIONS
@@ -2511,7 +2065,6 @@ function exact_u64_to_f64_core(val, is_neg, rm) {
       default: throw new Error("Invalid rounding mode: " + rm);
   }
 
-
   if (do_increment) {
       sig += 1n;
       if (sig >= 0x20000000000000n) { // Overflowed 53-bits (1 << 53)
@@ -2524,7 +2077,6 @@ function exact_u64_to_f64_core(val, is_neg, rm) {
   let stored_exp = exp + 1023;
   return ((is_neg ? 1n : 0n) << 63n) | (BigInt(stored_exp) << 52n) | f;
 }
-
 
 function exact_i64_to_f64(int_val, rm) {
   if (int_val === 0n) return 0n;
@@ -2540,13 +2092,11 @@ function exact_ui64_to_f64(uint_val, rm) {
   return exact_u64_to_f64_core(uint_val, false, rm);
 }
 
-
 $.FALU.D = {
   // ==========================================
   // DOUBLE-PRECISION LOADS & STORES (D Extension)
   // Calculates: Address = rs1 + imm
   // ==========================================
-
 
   // Floating-point Load Double (64-bit)
   fld: (rs1, imm) => ({
@@ -2554,7 +2104,6 @@ $.FALU.D = {
     bytes: 8,
     isFloat: true
   }),
-
 
   // Floating-point Store Double (64-bit)
   fsd: (rs1, rs2, imm) => ({
@@ -2566,19 +2115,16 @@ $.FALU.D = {
     value: BigInt.asUintN(64, rs2)
   }),
 
-
   fmadd_d:  (rs1, rs2, rs3, rm) => exact_f64_mulAdd(rs1, rs2, rs3, 0, rm),
   fmsub_d:  (rs1, rs2, rs3, rm) => exact_f64_mulAdd(rs1, rs2, rs3, 1, rm),
   fnmsub_d: (rs1, rs2, rs3, rm) => exact_f64_mulAdd(rs1, rs2, rs3, 2, rm),
   fnmadd_d: (rs1, rs2, rs3, rm) => exact_f64_mulAdd(rs1, rs2, rs3, 3, rm),
-
 
   fadd_d: (rs1, rs2, rm) => exact_f64_add(rs1, rs2, rm),
   fsub_d: (rs1, rs2, rm) => exact_f64_sub(rs1, rs2, rm),
   fmul_d: (rs1, rs2, rm) => exact_f64_mul(rs1, rs2, rm),
   fdiv_d: (rs1, rs2, rm) => exact_f64_div(rs1, rs2, rm),
   fsqrt_d: (rs1, rm) => exact_f64_sqrt(rs1, rm),
-
 
   fsgnj_d: (rs1, rs2) => {
     let sign = rs2 & 0x8000000000000000n;           // Extract bit 63 of rs2
@@ -2598,18 +2144,15 @@ $.FALU.D = {
   fmin_d: (rs1, rs2) => exact_fmin_d(rs1, rs2),
   fmax_d: (rs1, rs2) => exact_fmax_d(rs1, rs2),
 
-
   fcvt_s_d: (rs1, rm) => {
     let res32 = exact_f64_to_f32(rs1, rm);
     return BigInt(res32) | 0xFFFFFFFF00000000n;
 },
 
-
 // Convert Single to Double (Produces 64-bit Float -> No NaN-Box)
 fcvt_d_s: (rs1) => {
     return exact_f32_to_f64(rs1);
 },
-
 
 // Convert Double to Signed 32-bit Int
 fcvt_w_d: (rs1, rm) => {
@@ -2625,7 +2168,6 @@ fcvt_w_d: (rs1, rm) => {
       return BigInt.asIntN(32, BigInt(rounded));
   },
 
-
   // Convert Double to Unsigned 32-bit Int
   fcvt_wu_d: (rs1, rm) => {
       let f = get_f64_as_number(rs1);
@@ -2640,15 +2182,12 @@ fcvt_w_d: (rs1, rm) => {
       return BigInt.asIntN(32, BigInt(rounded));
   },
 
-
   fcvt_l_d:  (rs1, rm) => exact_f64_to_int(rs1, rm, false),
       fcvt_lu_d: (rs1, rm) => exact_f64_to_int(rs1, rm, true),
-
 
       // --- 64-Bit Integer to 64-Bit Float (RV64 Specific) ---
       fcvt_d_l:  (rs1, rm) => exact_i64_to_f64(BigInt.asIntN(64, rs1), rm),
       fcvt_d_lu: (rs1, rm) => exact_ui64_to_f64(BigInt.asUintN(64, rs1), rm),
-
 
       // --- 32-Bit Integer to 64-Bit Float (Always exact) ---
       fcvt_d_w: (rs1) => {
@@ -2666,18 +2205,15 @@ fcvt_w_d: (rs1, rm) => {
           return u64[0];
       },
 
-
       // --- Register Moves (RV64 Specific) ---
       fmv_x_d: (rs1) => rs1, // 64-bit float -> 64-bit Int
       fmv_d_x: (rs1) => rs1, // 64-bit Int -> 64-bit Float
-
 
       // --- Comparisons (Output to Integer Register) ---
       // JS quiet comparisons exactly match IEEE 754 RISC-V Spec!
       feq_d: (rs1, rs2) => (get_f64_as_number(rs1) === get_f64_as_number(rs2)) ? 1n : 0n,
       flt_d: (rs1, rs2) => (get_f64_as_number(rs1) < get_f64_as_number(rs2)) ? 1n : 0n,
       fle_d: (rs1, rs2) => (get_f64_as_number(rs1) <= get_f64_as_number(rs2)) ? 1n : 0n,
-
 
       // --- Floating-point Classify ---
       fclass_d: (rs1) => {
@@ -2714,10 +2250,6 @@ fcvt_w_d: (rs1, rm) => {
 // Decompresses 16-bit instructions into standard 32-bit instructions
 // ==========================================
 // Builders for 32-bit standard instruction formats
-
-
-
-
 $.C = {
   // ==========================================
   // LOADS AND STORES
@@ -2729,30 +2261,18 @@ $.C = {
     c_flwsp: (inst) => buildI(0x07, 2, (inst >> 7) & 0x1F, 2, ((inst >> 7) & 0x20) | ((inst >> 2) & 0x1C) | ((inst << 4) & 0xC0)),
     c_fldsp: (inst) => buildI(0x07, 3, (inst >> 7) & 0x1F, 2, ((inst >> 7) & 0x20) | ((inst >> 2) & 0x18) | ((inst << 4) & 0x1C0)),
     c_lqsp:  null, // RV128 only
-
-
-
-
     // Stack-Pointer Based Stores
     c_swsp:  (inst) => buildS(0x23, 2, 2, (inst >> 2) & 0x1F, ((inst >> 7) & 0x3C) | ((inst >> 1) & 0xC0)),
     c_sdsp:  (inst) => buildS(0x23, 3, 2, (inst >> 2) & 0x1F, ((inst >> 7) & 0x38) | ((inst >> 1) & 0x1C0)),
     c_fswsp: (inst) => buildS(0x27, 2, 2, (inst >> 2) & 0x1F, ((inst >> 7) & 0x3C) | ((inst >> 1) & 0xC0)),
     c_fsdsp: (inst) => buildS(0x27, 3, 2, (inst >> 2) & 0x1F, ((inst >> 7) & 0x38) | ((inst >> 1) & 0x1C0)),
     c_sqsp:  null, // RV128 only
-
-
-
-
     // Register-Based Loads (rs1'l + offset)
     c_lw:    (inst) => buildI(0x03, 2, 8 + ((inst >> 2) & 0x7), 8 + ((inst >> 7) & 0x7), ((inst >> 7) & 0x38) | ((inst >> 4) & 0x04) | ((inst << 1) & 0x40)),
     c_ld:    (inst) => buildI(0x03, 3, 8 + ((inst >> 2) & 0x7), 8 + ((inst >> 7) & 0x7), ((inst >> 7) & 0x38) | ((inst << 1) & 0xC0)),
     c_flw:   (inst) => buildI(0x07, 2, 8 + ((inst >> 2) & 0x7), 8 + ((inst >> 7) & 0x7), ((inst >> 7) & 0x38) | ((inst >> 4) & 0x04) | ((inst << 1) & 0x40)),
     c_fld:   (inst) => buildI(0x07, 3, 8 + ((inst >> 2) & 0x7), 8 + ((inst >> 7) & 0x7), ((inst >> 7) & 0x38) | ((inst << 1) & 0xC0)),
     c_lq:    null, // RV128 only
-
-
-
-
     // Register-Based Stores (rs1' + offset)
     c_sw:    (inst) => buildS(0x23, 2, 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 2) & 0x7), ((inst >> 7) & 0x38) | ((inst >> 4) & 0x04) | ((inst << 1) & 0x40)),
     c_sd:    (inst) => buildS(0x23, 3, 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 2) & 0x7), ((inst >> 7) & 0x38) | ((inst << 1) & 0xC0)),
@@ -2760,10 +2280,6 @@ $.C = {
     c_fsd:   (inst) => buildS(0x27, 3, 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 2) & 0x7), ((inst >> 7) & 0x38) | ((inst << 1) & 0xC0)),
     c_sq:    null  // RV128 only
   },
-
-
-
-
   // ==========================================
   // MATH AND LOGIC
   // ==========================================
@@ -2793,10 +2309,6 @@ $.C = {
     c_or:       (inst) => buildR(0x33, 6, 0, 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 2) & 0x7)),
     c_xor:      (inst) => buildR(0x33, 4, 0, 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 7) & 0x7), 8 + ((inst >> 2) & 0x7))
   },
-
-
-
-
   // ==========================================
   // CONTROL FLOW
   // ==========================================
@@ -2812,7 +2324,6 @@ $.C = {
     c_bnez: (inst) => buildB(0x63, 1, 8 + ((inst >> 7) & 0x7), 0, ((inst >> 4) & 0x100) | ((inst << 1) & 0xC0) | ((inst << 3) & 0x20) | ((inst >> 7) & 0x18) | ((inst >> 2) & 0x06) | (((inst >> 12) & 1) ? ~0x1FF : 0))  
 },
 
-
   // ==========================================
   // MISCELLANEOUS
   // ==========================================
@@ -2823,11 +2334,9 @@ $.C = {
   }
 };
 
-
 // ============================================================================
 // SYSTEM: BASE ENVIRONMENT & FENCES
 // ============================================================================
-
 
 $.System.Base = {
   // ecall and ebreak don't do math or memory. They return a control object
@@ -2844,10 +2353,8 @@ $.System.Base = {
     ret_pc: pc 
   }),
 
-
   // Memory Fences are essentially NOPs in a single-threaded JS emulator.
   fence: () => ({ isFence: true }),
-
 
   // ==========================================
   // TRAP AND EXCEPTION HANDLING
@@ -2872,7 +2379,6 @@ Trap: {
     StoreAMOPageFault: 15n
   },
 
-
   // Standard RISC-V Interrupt Codes (mcause values when MSB is 1)
   Interrupts: {
     SupervisorSoftware: 1n,
@@ -2883,13 +2389,11 @@ Trap: {
     MachineExternal: 11n
   },
 
-
   // Trigger a trap and transition state to the handler
   trigger: function(cause, epc, tval, is_interrupt = false) {
     let State = RV64IMAFDGCCPU.State;
     let mstatus = State.csr.get(0x300) || 0n;
     let mtvec   = State.csr.get(0x305) || 0n;
-
 
     // 1. Set mcause (MSB is 1 for interrupts, 0 for exceptions)
     let cause_val = BigInt(cause);
@@ -2898,14 +2402,11 @@ Trap: {
     }
     State.csr.set(0x342, cause_val);
 
-
     // 2. Save the PC where the trap occurred
     State.csr.set(0x341, BigInt(epc));
 
-
     // 3. Save trap-specific info (faulting address or instruction)
     State.csr.set(0x343, BigInt(tval));
-
 
     // 4. Update mstatus
     // - Extract current MIE (Machine Interrupt Enable) at bit 3
@@ -2919,11 +2420,9 @@ Trap: {
     mstatus = mstatus | (3n << 11n);  // MPP = 3 (Machine mode)
     State.csr.set(0x300, mstatus);
 
-
     // 5. Calculate next PC based on mtvec
     let base = mtvec & ~3n;
     let mode = mtvec & 3n;
-
 
     // Mode 1 (Vectored) only applies to asynchronous interrupts
     if (is_interrupt && mode === 1n) {
@@ -2934,7 +2433,6 @@ Trap: {
     }
   },
 
-
   // Return from a Machine-mode trap
   mret: function() {
     let State = RV64IMAFDGCCPU.State;
@@ -2942,7 +2440,6 @@ Trap: {
     
     // 1. Restore PC from mepc
     State.pc = State.csr.get(0x341) || 0n;
-
 
     // 2. Update mstatus
     // - Move MPIE (bit 7) back to MIE (bit 3)
@@ -2958,33 +2455,27 @@ Trap: {
 }
 };
 
-
 $.System.Zifencei = {
   // Instruction fence: Used to flush the instruction cache if you implement 
   // self-modifying code or JIT caching in your CPU loop later.
   fence_i: () => ({ isFenceI: true })
 };
 
-
 // ============================================================================
 // SYSTEM: Zicsr (CONTROL AND STATUS REGISTERS)
 // ============================================================================
-
 
 // Safely reads a CSR. If it hasn't been written to yet, it returns 0n.
 function read_csr(csr_addr) {
   return $.State.csr.get(csr_addr) || 0n;
 }
 
-
 // Safely writes a 64-bit value to a CSR, ensuring it stays BigInt.
 function write_csr(csr_addr, val) {
   $.State.csr.set(csr_addr, BigInt.asUintN(64, val));
 }
 
-
 $.System.Zicsr = {
-
 
   // ==========================================
   // INTELLIGENT READ ROUTER
@@ -2992,7 +2483,6 @@ $.System.Zicsr = {
   read: function(addr) {
       let State = $.State; // Assuming $ is your root object
       let val = 0n;
-
 
       switch (addr) {
           // --- S-Mode Shadows ---
@@ -3011,7 +2501,6 @@ $.System.Zicsr = {
               val = (State.csr.get(0x344) || 0n) & (State.csr.get(0x303) || 0n);
               break;
 
-
           // --- FPU Composite Registers ---
           case 0x003: { // fcsr (Contains frm and fflags)
               let fflags = State.csr.get(0x001) || 0n;
@@ -3019,7 +2508,6 @@ $.System.Zicsr = {
               val = (frm << 5n) | fflags;
               break;
           }
-
 
           // --- Hardware Timers ---
           case 0xC00: // cycle
@@ -3030,7 +2518,6 @@ $.System.Zicsr = {
               val = BigInt(Date.now()); 
               break;
 
-
           // --- Standard Registers ---
           default:
               val = State.csr.get(addr) || 0n;
@@ -3039,13 +2526,11 @@ $.System.Zicsr = {
       return val;
   },
 
-
   // ==========================================
   // INTELLIGENT WRITE ROUTER
   // ==========================================
   write: function(addr, val) {
       let State = $.State;
-
 
       switch (addr) {
           // --- S-Mode Shadows ---
@@ -3073,7 +2558,6 @@ $.System.Zicsr = {
               break;
           }
 
-
           // --- FPU Composite Registers ---
           case 0x003: // fcsr
               State.csr.set(0x001, val & 0x1Fn);       // Extract fflags
@@ -3087,7 +2571,6 @@ $.System.Zicsr = {
               State.csr.set(0x300, (State.csr.get(0x300) || 0n) | (3n << 13n)); // Mark FS dirty
               break;
 
-
           // --- Read-Only Registers (Silently Ignore Writes) ---
           case 0xF11: // mvendorid
           case 0xF12: // marchid
@@ -3098,7 +2581,6 @@ $.System.Zicsr = {
           case 0xC02: // instret
               break; 
 
-
           // --- Standard M-Mode Registers ---
           default:
               // For all standard registers (mepc, mtvec, satp, mscratch, etc.)
@@ -3106,7 +2588,6 @@ $.System.Zicsr = {
               break;
       }
   },
-
 
   // ==========================================
   // INSTRUCTION EXECUTORS
@@ -3119,7 +2600,6 @@ $.System.Zicsr = {
       return old_val; 
   },
 
-
   // csrrs: Read old value, Bitwise OR rs1 into CSR
   csrrs: function(csr_addr, rs1_val) {
       let old_val = this.read(csr_addr);
@@ -3128,7 +2608,6 @@ $.System.Zicsr = {
       }
       return old_val;
   },
-
 
   // csrrc: Read old value, Bitwise Clear (AND NOT) rs1 from CSR
   csrrc: function(csr_addr, rs1_val) {
@@ -3139,14 +2618,12 @@ $.System.Zicsr = {
       return old_val;
   },
 
-
   // csrrwi: Read old value, write zimm to CSR
   csrrwi: function(csr_addr, zimm) {
       let old_val = this.read(csr_addr);
       this.write(csr_addr, BigInt(zimm));
       return old_val;
   },
-
 
   // csrrsi: Read old value, Bitwise OR zimm into CSR
   csrrsi: function(csr_addr, zimm) {
@@ -3157,7 +2634,6 @@ $.System.Zicsr = {
       }
       return old_val;
   },
-
 
   // csrrci: Read old value, Bitwise Clear zimm from CSR
   csrrci: function(csr_addr, zimm) {
@@ -3170,147 +2646,94 @@ $.System.Zicsr = {
   }
 };
 
-
 $.State.prv = 3n; // Start in Machine mode (3=M, 1=S, 0=U)
 $.State.tlb = new Map();
 
-
-
-
-
-
 class UART16550 {
-
 
   constructor() {
 
-
       // Essential registers
-
 
       this.ier = 0;    // Interrupt Enable Register
 
-
       this.lcr = 0;    // Line Control Register
 
-
       
-
 
       // LSR: Line Status Register. 
 
-
       // 0x20 = Transmitter Holding Register Empty (Ready to accept new data)
-
 
       // 0x40 = Transmitter Empty (All data sent)
 
-
       // The OS checks this to know if it's safe to send a character!
-
 
       this.lsr = 0x60; 
 
-
       
-
 
       this.outBuffer = "";
 
-
   }
-
 
   read(offset) {
 
-
       switch (offset) {
-
 
           case 0: return 0;       // RX Buffer (Input empty for now)
 
-
           case 1: return this.ier;
-
 
           case 2: return 0xC1;    // Interrupt Identification (0xC1 = No interrupt pending, FIFOs enabled)
 
-
           case 3: return this.lcr;
-
 
           case 5: return this.lsr;
 
-
           default: return 0;
-
 
       }
 
-
   }
-
 
   write(offset, value) {
 
-
       value = Number(value) & 0xFF; // UART registers are 8-bit
-
 
       
 
-
       switch (offset) {
-
 
           case 0: 
 
-
               // Offset 0 is the THR (Transmit Holding Register).
-
 
               // Writing to this offset prints a character.
 
-
               if (value === 10) { // Newline character '\n'
-
 
                   console.log(`[UART] ${this.outBuffer}`);
 
-
                   this.outBuffer = "";
-
 
               } else {
 
-
                   this.outBuffer += String.fromCharCode(value);
-
 
               }
 
-
               break;
-
 
           case 1: this.ier = value; break;
 
-
           case 3: this.lcr = value; break;
-
 
       }
 
-
   }
 
-
 }
-
-
-
-
-
 
 class CLINT {
     constructor() {
@@ -3485,11 +2908,9 @@ class VirtioBlock {
     }
 }
 
-
 const RVALUATION64 = {
   cpu: $,
   memory: null,
-
 
   Decode: {
       opcode: (inst) => inst & 0x7F,
@@ -3499,7 +2920,6 @@ const RVALUATION64 = {
       rs2:    (inst) => (inst >> 20) & 0x1F,
       funct7: (inst) => (inst >>> 25) & 0x7F,
       rs3:    (inst) => (inst >> 27) & 0x1F, // Specifically for Fused-Multiply Add (FMA)
-
 
       // Immediates
       imm_I: (inst) => BigInt(inst >> 20),
@@ -3518,7 +2938,6 @@ const RVALUATION64 = {
           (((inst >> 21) & 0x3FF) << 1)
       )
   },
-
 
   // ==========================================
   // COMPLETE RISC-V OPCODE DISPATCH TABLE
@@ -3539,7 +2958,6 @@ const RVALUATION64 = {
         0x33: null, // OP     (ADD, SUB, SLL, SLT, SLTU, XOR, SRL, SRA, OR, AND) 
                     //        -> Also includes 'M' Extension (MUL, DIV, REM)
       },
-
 
       // ----------------------------------------
       // RV64I SPECIFIC (32-bit operations)
@@ -3577,12 +2995,10 @@ const RVALUATION64 = {
     }
 };
 
-
 RVALUATION64.Opcodes.BASE_INTEGER = {
   // ----------------------------------------
   // BASE INTEGER (RV32I / RV64I)
   // ----------------------------------------
-
 
   // LUI (Load Upper Immediate)
   0x37: function(inst) {
@@ -3594,7 +3010,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       this.cpu.State.pc += 4n;
   },
 
-
   // AUIPC (Add Upper Immediate to PC)
   0x17: function(inst) {
       let rd = this.Decode.rd(inst);
@@ -3604,7 +3019,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       }
       this.cpu.State.pc += 4n;
   },
-
 
   // JAL (Jump and Link)
   0x6F: function(inst) {
@@ -3616,7 +3030,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       if (rd !== 0) this.cpu.State.x_ram[rd] = res.rd_val;
       this.cpu.State.pc = res.new_pc; // Note: We do NOT add 4 here, the jump sets the PC!
   },
-
 
   // JALR (Jump and Link Register)
   0x67: function(inst) {
@@ -3631,7 +3044,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       this.cpu.State.pc = res.new_pc;
   },
 
-
   // BRANCH (BEQ, BNE, BLT, BGE, BLTU, BGEU)
   0x63: function(inst) {
       let funct3 = this.Decode.funct3(inst);
@@ -3643,7 +3055,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       let rs2_val = this.cpu.State.x_ram[rs2];
       let taken = false;
 
-
       switch (funct3) {
           case 0x0: taken = this.cpu.ALU.Branches.beq(rs1_val, rs2_val); break;
           case 0x1: taken = this.cpu.ALU.Branches.bne(rs1_val, rs2_val); break;
@@ -3654,14 +3065,12 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
           default: throw new Error(`Invalid BRANCH funct3: ${funct3}`);
       }
 
-
       if (taken) {
           this.cpu.State.pc += imm;
       } else {
           this.cpu.State.pc += 4n;
       }
   },
-
 
   // LOAD (LB, LH, LW, LD, LBU, LHU, LWU)
   0x03: function(inst) {
@@ -3683,12 +3092,10 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
         default: this.MMU.triggerTrap(2n, BigInt(inst), false); return; // Illegal Instruction
     }
 
-
     // 1. Map byte count to the MMU size string
     let sizeStr = loadOp.bytes === 1 ? '8' : 
                   loadOp.bytes === 2 ? '16' : 
                   loadOp.bytes === 4 ? '32' : '64';
-
 
     // 2. Interface with the MMU (this correctly handles page faults and MMIO)
     // If a page fault happens, this.MMU.read throws "TRAP_RAISED" and aborts the instruction automatically!
@@ -3705,7 +3112,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
     
     this.cpu.State.pc += 4n;
   },
-
 
   // STORE (SB, SH, SW, SD)
   0x23: function(inst) {
@@ -3726,19 +3132,16 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
           default: this.MMU.triggerTrap(2n, BigInt(inst), false); return; // Illegal Instruction
       }
 
-
       // Map byte count to MMU size string
       let sizeStr = storeOp.bytes === 1 ? '8' : 
                     storeOp.bytes === 2 ? '16' : 
                     storeOp.bytes === 4 ? '32' : '64';
-
 
       // Interface with the MMU
       this.MMU.write(storeOp.addr, sizeStr, storeOp.value);
       
       this.cpu.State.pc += 4n;
   },
-
 
   // OP-IMM (Immediate Arithmetic)
   0x13: function(inst) {
@@ -3750,7 +3153,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       
       let rs1_val = this.cpu.State.x_ram[rs1];
       let result = 0n;
-
 
       switch (funct3) {
           case 0x0: result = this.cpu.ALU.Base.addi(rs1_val, imm); break;
@@ -3770,11 +3172,9 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
               break;
       }
 
-
       if (rd !== 0) this.cpu.State.x_ram[rd] = result;
       this.cpu.State.pc += 4n;
   },
-
 
   // OP (Register-Register Arithmetic + 'M' Extension Math)
   0x33: function(inst) {
@@ -3787,7 +3187,6 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
       let rs1_val = this.cpu.State.x_ram[rs1];
       let rs2_val = this.cpu.State.x_ram[rs2];
       let result = 0n;
-
 
       // The 'M' Extension (Multiplication/Division) is uniquely identified by funct7 === 0x01
       if (funct7 === 0x01) {
@@ -3818,12 +3217,10 @@ RVALUATION64.Opcodes.BASE_INTEGER = {
           }
       }
 
-
       if (rd !== 0) this.cpu.State.x_ram[rd] = result;
       this.cpu.State.pc += 4n;
   }
 }
-
 
 RVALUATION64.Opcodes.RV64I_SPECIFIC = {
   // OP-IMM-32 (ADDIW, SLLIW, SRLIW, SRAIW)
@@ -3836,7 +3233,6 @@ RVALUATION64.Opcodes.RV64I_SPECIFIC = {
       
       let rs1_val = this.cpu.State.x_ram[rs1];
       let result = 0n;
-
 
       switch (funct3) {
           case 0x0: // ADDIW
@@ -3856,11 +3252,9 @@ RVALUATION64.Opcodes.RV64I_SPECIFIC = {
               throw new Error(`Invalid OP-IMM-32 funct3: ${funct3}`);
       }
 
-
       if (rd !== 0) this.cpu.State.x_ram[rd] = result;
       this.cpu.State.pc += 4n;
   },
-
 
   // OP-32 (ADDW, SUBW, SLLW, SRLW, SRAW + 'M' Ext 32-bit)
   0x3B: function(inst) {
@@ -3873,7 +3267,6 @@ RVALUATION64.Opcodes.RV64I_SPECIFIC = {
       let rs1_val = this.cpu.State.x_ram[rs1];
       let rs2_val = this.cpu.State.x_ram[rs2];
       let result = 0n;
-
 
       // Check if it is the 'M' Extension (funct7 === 0x01)
       if (funct7 === 0x01) {
@@ -3905,12 +3298,10 @@ RVALUATION64.Opcodes.RV64I_SPECIFIC = {
           }
       }
 
-
       if (rd !== 0) this.cpu.State.x_ram[rd] = result;
       this.cpu.State.pc += 4n;
   }
 }
-
 
 RVALUATION64.Opcodes.ATOMICS = {
   // ----------------------------------------
@@ -3925,13 +3316,10 @@ RVALUATION64.Opcodes.ATOMICS = {
     
     let funct5 = funct7 >> 2; 
 
-
     let rs1_val = this.cpu.State.x_ram[rs1];
     let rs2_val = this.cpu.State.x_ram[rs2];
 
-
     let amoOp;
-
 
     if (funct3 === 0x2) { // 32-bit (.w)
         switch (funct5) {
@@ -3967,9 +3355,7 @@ RVALUATION64.Opcodes.ATOMICS = {
         this.MMU.triggerTrap(2n, BigInt(inst), false); return;
     }
 
-
     let sizeStr = amoOp.bytes === 4 ? '32' : '64';
-
 
     // --- LOAD RESERVED ---
     if (amoOp.type === 'LR') {
@@ -3981,7 +3367,6 @@ RVALUATION64.Opcodes.ATOMICS = {
         this.cpu.State.loadReservation.active = true;
         this.cpu.State.loadReservation.address = amoOp.addr;
         this.cpu.State.loadReservation.size = amoOp.bytes;
-
 
     // --- STORE CONDITIONAL ---
     } else if (amoOp.type === 'SC') {
@@ -3995,7 +3380,6 @@ RVALUATION64.Opcodes.ATOMICS = {
         }
         this.cpu.State.loadReservation.active = false;
 
-
     // --- STANDARD ATOMIC MEMORY OPERATIONS (AMO) ---
     } else if (amoOp.type === 'AMO') {
         let old_val = this.MMU.read(amoOp.addr, sizeStr);
@@ -4008,17 +3392,14 @@ RVALUATION64.Opcodes.ATOMICS = {
         if (rd !== 0) this.cpu.State.x_ram[rd] = rd_val;
     }
 
-
     this.cpu.State.pc += 4n;
   },
 };
-
 
 RVALUATION64.Opcodes.FLOATING_POINT = {
   // ----------------------------------------
   // FLOATING POINT (F & D Extensions)
   // ----------------------------------------
-
 
   // LOAD-FP (FLW, FLD)
   0x07: function(inst) {
@@ -4038,7 +3419,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
         this.MMU.triggerTrap(2n, BigInt(inst), false); return;
     }
 
-
     let sizeStr = loadOp.bytes === 4 ? '32' : '64';
     let val = this.MMU.read(loadOp.addr, sizeStr);
     
@@ -4050,7 +3430,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
     this.cpu.State.f_ram[rd] = val;
     this.cpu.State.pc += 4n;
   },
-
 
   // STORE-FP (FSW, FSD)
   0x27: function(inst) {
@@ -4071,13 +3450,11 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
           this.MMU.triggerTrap(2n, BigInt(inst), false); return;
       }
 
-
       let sizeStr = storeOp.bytes === 4 ? '32' : '64';
       this.MMU.write(storeOp.addr, sizeStr, storeOp.value);
       
       this.cpu.State.pc += 4n;
   },
-
 
   // FMADD (rs1 * rs2 + rs3)
   0x43: function(inst) {
@@ -4104,7 +3481,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
       this.cpu.State.pc += 4n;
   },
 
-
   // FMSUB (rs1 * rs2 - rs3)
   0x47: function(inst) {
       let rd = this.Decode.rd(inst);
@@ -4126,7 +3502,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
       }
       this.cpu.State.pc += 4n;
   },
-
 
   // FNMSUB -(rs1 * rs2) + rs3
   0x4B: function(inst) {
@@ -4150,7 +3525,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
       this.cpu.State.pc += 4n;
   },
 
-
   // FNMADD -(rs1 * rs2) - rs3
   0x4F: function(inst) {
       let rd = this.Decode.rd(inst);
@@ -4173,7 +3547,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
       this.cpu.State.pc += 4n;
   },
 
-
   // OP-FP (FADD, FSUB, FMUL, FDIV, FSQRT, FSGNJ, FMIN, FMAX, FCVT, FMV, FEQ, FLT, FLE, FCLASS)
   0x53: function(inst) {
     let rd = this.Decode.rd(inst);
@@ -4183,15 +3556,12 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
     let fmt = (inst >> 25) & 0x3;       // Format: 0 = Single (.S), 1 = Double (.D)
     let funct5 = (inst >> 27) & 0x1F;   // Primary Operation selector
 
-
     let val1_f = this.cpu.State.f_ram[rs1];
     let val2_f = this.cpu.State.f_ram[rs2];
     let val1_x = this.cpu.State.x_ram[rs1];
 
-
     let write_to_x = false;
     let result_x = 0n;
-
 
     switch (funct5) {
       case 0x00: // FADD (00000)
@@ -4200,36 +3570,46 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
               ? this.cpu.FALU.F.fadd_s(val1_f, val2_f, rm_add)
               : this.cpu.FALU.D.fadd_d(val1_f, val2_f, rm_add);
           break;
-
       case 0x01: // FSUB (00001) - WAS 0x04
           let rm_sub = this.cpu.State.get_rm(rm_field);
           this.cpu.State.f_ram[rd] = (fmt === 0)
               ? this.cpu.FALU.F.fsub_s(val1_f, val2_f, rm_sub)
               : this.cpu.FALU.D.fsub_d(val1_f, val2_f, rm_sub);
           break;
-
       case 0x02: // FMUL (00010) - WAS 0x08
           let rm_mul = this.cpu.State.get_rm(rm_field);
           this.cpu.State.f_ram[rd] = (fmt === 0)
               ? this.cpu.FALU.F.fmul_s(val1_f, val2_f, rm_mul)
               : this.cpu.FALU.D.fmul_d(val1_f, val2_f, rm_mul);
           break;
-
       case 0x03: // FDIV (00011) - WAS 0x0C
           let rm_div = this.cpu.State.get_rm(rm_field);
           this.cpu.State.f_ram[rd] = (fmt === 0)
               ? this.cpu.FALU.F.fdiv_s(val1_f, val2_f, rm_div)
               : this.cpu.FALU.D.fdiv_d(val1_f, val2_f, rm_div);
           break;
-
-      case 0x04: // FSGNJ, FSGNJN, FSGNJX (00100)
-          // TODO: Implement Sign Injection
+          case 0x04: // FSGNJ, FSGNJN, FSGNJX (00100)
+          if (fmt === 0) { // Single (.S)
+              if (rm_field === 0) this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fsgnj_s(val1_f, val2_f);
+              else if (rm_field === 1) this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fsgnjn_s(val1_f, val2_f);
+              else if (rm_field === 2) this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fsgnjx_s(val1_f, val2_f);
+          } else if (fmt === 1) { // Double (.D)
+              if (rm_field === 0) this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fsgnj_d(val1_f, val2_f);
+              else if (rm_field === 1) this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fsgnjn_d(val1_f, val2_f);
+              else if (rm_field === 2) this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fsgnjx_d(val1_f, val2_f);
+          }
           break;
           
       case 0x05: // FMIN, FMAX (00101)
-          // TODO: Implement Min/Max
+          // Note: passing this.cpu.State so the operations can update fcsr
+          if (fmt === 0) {
+              if (rm_field === 0) this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fmin_s(val1_f, val2_f, this.cpu.State);
+              else if (rm_field === 1) this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fmax_s(val1_f, val2_f, this.cpu.State);
+          } else if (fmt === 1) {
+              if (rm_field === 0) this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fmin_d(val1_f, val2_f, this.cpu.State);
+              else if (rm_field === 1) this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fmax_d(val1_f, val2_f, this.cpu.State);
+          }
           break;
-
       case 0x08: // FCVT.fmt.fmt (01000) - WAS 0x10
           let rm_cvt_ff = this.cpu.State.get_rm(rm_field);
           if (fmt === 1 && rs2 === 0) {
@@ -4238,14 +3618,12 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
               this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fcvt_d_s(val1_f, rm_cvt_ff);
           }
           break;
-
       case 0x0B: // FSQRT (01011)
           let rm_sqrt = this.cpu.State.get_rm(rm_field);
           this.cpu.State.f_ram[rd] = (fmt === 0)
               ? this.cpu.FALU.F.fsqrt_s(val1_f, rm_sqrt)
               : this.cpu.FALU.D.fsqrt_d(val1_f, rm_sqrt);
           break;
-
       case 0x14: // FCMP (10100)
           write_to_x = true;
           if (fmt === 0) {
@@ -4258,7 +3636,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
               else if (rm_field === 2) result_x = this.cpu.FALU.D.feq_d(val1_f, val2_f);
           }
           break;
-
         case 0x18: // Was 0x60: FCVT.int.fmt (Float to Integer)
             write_to_x = true;
             let rm_cvt_i = this.cpu.State.get_rm(rm_field);
@@ -4274,7 +3651,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
                 else if (rs2 === 3) result_x = this.cpu.FALU.D.fcvt_lu_d(val1_f, rm_cvt_i);
             }
             break;
-
         case 0x1A: // Was 0x68: FCVT.fmt.int (Integer to Float)
             let rm_cvt_f = this.cpu.State.get_rm(rm_field);
             if (fmt === 0) {
@@ -4289,7 +3665,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
                 else if (rs2 === 3) this.cpu.State.f_ram[rd] = this.cpu.FALU.D.fcvt_d_lu(val1_x, rm_cvt_f);
             }
             break;
-
         case 0x1C: // Was 0x70: FMV.X.D or FCLASS.D
             write_to_x = true;
             if (fmt === 0) {
@@ -4300,7 +3675,6 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
                 else if (rm_field === 1) result_x = this.cpu.FALU.D.fclass_d(val1_f);
             }
             break;
-
         case 0x1E: // Was 0x78: FMV.D.X
             if (fmt === 0) {
                 this.cpu.State.f_ram[rd] = this.cpu.FALU.F.fmv_w_x(val1_x);
@@ -4309,22 +3683,18 @@ RVALUATION64.Opcodes.FLOATING_POINT = {
             }
             break;
 
-
         default:
             throw new Error(`Unimplemented OP-FP funct5: 0x${funct5.toString(16)}`);
     }
-
 
     // Write-back for instructions that target the Integer Register File
     if (write_to_x && rd !== 0) {
         this.cpu.State.x_ram[rd] = result_x;
     }
 
-
     this.cpu.State.pc += 4n;
   }
 }
-
 
 RVALUATION64.Opcodes.SYSTEM$MEMORY = {
   // ----------------------------------------
@@ -4340,7 +3710,6 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
     this.cpu.State.pc += 4n;
   },
 
-
   // ----------------------------------------
   // SYSTEM (ECALL, EBREAK, SRET, MRET, CSRs) - Opcode 0x73
   // ----------------------------------------
@@ -4351,7 +3720,6 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
     const funct3 = this.Decode.funct3(inst);
     const funct7 = (inst >>> 25) & 0x7F;
     const imm12 = (inst >>> 20) & 0xFFF;
-
 
     // --- PRIVILEGED & SPECIAL INSTRUCTIONS (funct3 == 0) ---
     if (funct3 === 0) {
@@ -4366,11 +3734,9 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
           return; 
         }
 
-
         case 0x001: // EBREAK
           this.MMU.triggerTrap(3n, this.cpu.State.pc, false);
           return;
-
 
         case 0x102: { // SRET (Supervisor Return)
           if (this.cpu.State.prv < 1n) {
@@ -4397,7 +3763,6 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
           return;
         }
 
-
         case 0x302: { // MRET (Machine Return)
           if (this.cpu.State.prv < 3n) {
             this.MMU.triggerTrap(2n, BigInt(inst), false);
@@ -4414,13 +3779,11 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
           
           if (mpp !== 3n) mstatus &= ~(1n << 17n);
 
-
           this.cpu.State.csr.set(0x300, mstatus);
           this.cpu.State.prv = mpp;
           this.cpu.State.pc = this.cpu.State.csr.get(0x341); 
           return;
         }
-
 
         case 0x105: { // WFI (Wait For Interrupt)
           let mstatus = this.cpu.State.csr.get(0x300) || 0n;
@@ -4432,7 +3795,6 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
           this.MMU.checkInterrupts();
           break;
         }
-
 
         default:
           if (funct7 === 0x09) { // SFENCE.VMA
@@ -4464,7 +3826,6 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
         return;
       }
 
-
       // SPEC FIX: Correct Read-Only Masking
       // Bits 11:10 == 3 (binary 11) means read-only
       const is_read_only = (csr_addr >> 10) === 0x3;
@@ -4472,15 +3833,12 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
       // Write Attempt detection is flawless (funct3 bit 0 handles RW/RWI, others check rs1/zimm)
       const is_write_attempt = (funct3 & 0x3) === 0x1 || (funct3 & 0x4 ? zimm !== 0n : rs1 !== 0);
 
-
       if (is_read_only && is_write_attempt) {
         this.MMU.triggerTrap(2n, BigInt(inst), false);
         return;
       }
 
-
       let old_val = 0n;
-
 
       try {
         switch (funct3) {
@@ -4521,17 +3879,14 @@ RVALUATION64.Opcodes.SYSTEM$MEMORY = {
       }
     }
 
-
     this.cpu.State.pc += 4n;
   }
 };
-
 
 RVALUATION64.MMU = {
       UART_BASE:   0x10000000n, UART_SIZE:   0x100n,
       CLINT_BASE:  0x02000000n, CLINT_SIZE:  0x10000n,
       VIRTIO_BASE: 0x10001000n, VIRTIO_SIZE: 0x1000n,
-
 
       // --- TRAP ROUTING ---
       triggerTrap: function(cause, vaddr, isInterrupt = false) {
@@ -4592,7 +3947,6 @@ RVALUATION64.MMU = {
         throw new Error("TRAP_RAISED");
       },
 
-
       // --- SFENCE.VMA: TLB FLUSHING ---
       flushTLB: function(vaddr, asid) {
         // If vaddr is 0, flush all. If asid is 0, flush all ASIDs for that vaddr.
@@ -4609,7 +3963,6 @@ RVALUATION64.MMU = {
         }
       },
 
-
       translate: function(vaddr, accessType) {
         let state = RVALUATION64.cpu.State;
         let effectivePrv = state.prv;
@@ -4623,7 +3976,6 @@ RVALUATION64.MMU = {
         const satp = state.csr.get(0x180) || 0n;
         if (((satp >> 60n) & 0xFn) === 0n) return vaddr;
 
-
         // Canonical check
         const bit38 = (vaddr >> 38n) & 1n;
         const upperBits = (vaddr >> 39n) & 0x1FFFFFFn;
@@ -4631,10 +3983,8 @@ RVALUATION64.MMU = {
             this.triggerTrap(accessType === 0 ? 12n : (accessType === 1 ? 13n : 15n), vaddr);
         }
 
-
         let ppn = satp & 0xFFFFFFFFFFFn;
         const vpn = [(vaddr >> 12n) & 0x1FFn, (vaddr >> 21n) & 0x1FFn, (vaddr >> 30n) & 0x1FFn];
-
 
         let i = 2;
         let pte, pteAddr;
@@ -4653,29 +4003,24 @@ RVALUATION64.MMU = {
             ppn = (pte >> 10n) & 0xFFFFFFFFFFFn;
         }
 
-
         // 2. Permission Checks
         const u = (pte >> 4n) & 1n;
         if (effectivePrv === 0n && !u) this.triggerTrap(accessType === 0 ? 12n : (accessType === 1 ? 13n : 15n), vaddr);
         if (effectivePrv === 1n && u && !(mstatus & (1n << 18n))) this.triggerTrap(accessType === 0 ? 12n : (accessType === 1 ? 13n : 15n), vaddr);
 
-
         if (accessType === 0 && !(pte & 8n)) this.triggerTrap(12n, vaddr);
         if (accessType === 1 && !(pte & 2n) && !((mstatus & (1n << 19n)) && (pte & 8n))) this.triggerTrap(13n, vaddr);
         if (accessType === 2 && !(pte & 4n)) this.triggerTrap(15n, vaddr);
-
 
         // 3. Alignment Checks
         if (i > 0 && ((pte >> 10n) & ((1n << (9n * BigInt(i))) - 1n)) !== 0n) {
             this.triggerTrap(accessType === 0 ? 12n : (accessType === 1 ? 13n : 15n), vaddr);
         }
 
-
         // 4. COMPLIANT A/D BIT MANAGEMENT (Hardware Update)
         let newPte = pte | (1n << 6n); // Always set Accessed
         if (accessType === 2) newPte |= (1n << 7n); // Set Dirty on write
         if (newPte !== pte) RVALUATION64.memory.write64(pteAddr, newPte);
-
 
         const pageOffset = vaddr & 0xFFFn;
         if (i === 0) return ((pte >> 10n) << 12n) | pageOffset;
@@ -4683,13 +4028,11 @@ RVALUATION64.MMU = {
         return ((pte >> 28n) << 30n) | (vpn[1] << 21n) | (vpn[0] << 12n) | pageOffset;
       },
 
-
       get_paddr: function(vaddr, accessType) {
         let state = RVALUATION64.cpu.State;
         const satp = state.csr.get(0x180) || 0n;
         const mode = (satp >> 60n) & 0xFn;
         if (mode === 0n || state.prv === 3n) return vaddr;
-
 
         const asid = (satp >> 44n) & 0xFFFFn;
         const vpn = vaddr >> 12n;
@@ -4698,15 +4041,10 @@ RVALUATION64.MMU = {
         let cached = state.tlb.get(tlbKey);
         if (cached !== undefined) return cached | (vaddr & 0xFFFn);
 
-
         const paddr = this.translate(vaddr, accessType);
         state.tlb.set(tlbKey, paddr & ~0xFFFn);
         return paddr;
       },
-
-
-
-
       // --- CORE OPERATIONS ---
       fetch: function(vaddr) { 
           const paddr1 = this.get_paddr(vaddr, 0);
@@ -4718,7 +4056,6 @@ RVALUATION64.MMU = {
           const upper16 = RVALUATION64.memory.readU16(paddr2);
           return lower16 | (upper16 << 16);
       },
-
 
       read: function(vaddr, sizeStr) {
           const paddr = this.get_paddr(vaddr, 1);
@@ -4735,7 +4072,6 @@ RVALUATION64.MMU = {
           
           return RVALUATION64.memory['read' + sizeStr](paddr);
       },
-
 
       write: function(vaddr, sizeStr, val) {
           const paddr = this.get_paddr(vaddr, 2);
@@ -4755,7 +4091,6 @@ RVALUATION64.MMU = {
           
           RVALUATION64.memory['write' + sizeStr](paddr, val);
       },
-
 
       checkInterrupts: function() {
           let state = RVALUATION64.cpu.State;
@@ -4793,7 +4128,6 @@ RVALUATION64.MMU = {
     try {
         if (this.MMU.checkInterrupts()) return;
 
-
         let pc = this.cpu.State.pc;
         let inst = this.MMU.fetch(pc); 
         
@@ -4801,7 +4135,6 @@ RVALUATION64.MMU = {
             this.handleCompressed(inst & 0xFFFF);
             return;
         }
-
 
         let opcode = this.Decode.opcode(inst);
         let handler = null;
@@ -4812,7 +4145,6 @@ RVALUATION64.MMU = {
         else if (opcode === 0x2F) handler = this.Opcodes.ATOMICS;
         else if (opcode === 0x07 || opcode === 0x27 || opcode === 0x43 || opcode === 0x47 || opcode === 0x4B || opcode === 0x4F || opcode === 0x53) handler = this.Opcodes.FLOATING_POINT;
         else if (opcode === 0x0F || opcode === 0x73) handler = this.Opcodes.SYSTEM$MEMORY;
-
 
         if (handler && handler[opcode]) {
             handler[opcode].call(this, inst); 
@@ -4829,21 +4161,17 @@ RVALUATION64.MMU = {
     }
   }
 
-
   // Add this inside RVALUATION64, replacing your handleCompressed stub:
-
 
 RVALUATION64.handleCompressed = function(inst16) {
       // 1. Expand the 16-bit instruction into a 32-bit equivalent
       let inst32 = this.expandCompressed(inst16);
-
 
       if (inst32 === null) {
           // Unmapped or illegal compressed instruction (e.g., all zeros)
           this.MMU.triggerTrap(2n, BigInt(inst16), false);
           return;
       }
-
 
       // 2. Decode the expanded 32-bit instruction
       let opcode = this.Decode.opcode(inst32);
@@ -4854,7 +4182,6 @@ RVALUATION64.handleCompressed = function(inst16) {
       else if (opcode === 0x2F) handler = this.Opcodes.ATOMICS;
       else if (opcode === 0x07 || opcode === 0x27 || opcode === 0x43 || opcode === 0x47 || opcode === 0x4B || opcode === 0x4F || opcode === 0x53) handler = this.Opcodes.FLOATING_POINT;
       else if (opcode === 0x0F || opcode === 0x73) handler = this.Opcodes.SYSTEM$MEMORY;
-
 
       if (handler && handler[opcode]) {
           // Save the current PC before execution
@@ -4874,15 +4201,12 @@ RVALUATION64.handleCompressed = function(inst16) {
       }
   },
 
-
 RVALUATION64.expandCompressed = function(inst16) {
       if (inst16 === 0x0000) return null; // All zeros is explicitly an illegal instruction
-
 
       let op = inst16 & 0x3;                // Quadrant (Lowest 2 bits)
       let funct3 = (inst16 >> 13) & 0x7;    // Funct3 (Top 3 bits)
       let c = this.cpu.C;                   // Alias for your maps
-
 
       switch (op) {
           // ----------------------------------------
@@ -4899,7 +4223,6 @@ RVALUATION64.expandCompressed = function(inst16) {
                   case 7: return c.LoadsStores.c_sd(inst16);
                   default: return null;
               }
-
 
           // ----------------------------------------
           // QUADRANT 01 (0x1)
@@ -4943,7 +4266,6 @@ RVALUATION64.expandCompressed = function(inst16) {
                   default: return null;
               }
 
-
           // ----------------------------------------
           // QUADRANT 02 (0x2)
           // ----------------------------------------
@@ -4972,15 +4294,9 @@ RVALUATION64.expandCompressed = function(inst16) {
                   default: return null;
               }
 
-
           default: return null;
       }
   }
-
-
-
-
-
 
   RVALUATION64.cpu.UART = new UART16550();
 class PhysicalMemory {
@@ -4991,7 +4307,6 @@ class PhysicalMemory {
       this.size = BigInt(sizeInBytes);
   }
 
-
   _offset(addr) {
       addr = BigInt(addr);
       if (addr < this.base || addr >= this.base + this.size) {
@@ -5000,7 +4315,6 @@ class PhysicalMemory {
       }
       return Number(addr - this.base);
   }
-
 
   // ==========================================
   // CPU / MMU INTERFACE
@@ -5012,12 +4326,10 @@ class PhysicalMemory {
   read32(addr) { return BigInt(this.view.getUint32(this._offset(addr), true)); }
   read64(addr) { return this.view.getBigUint64(this._offset(addr), true); }
 
-
   write8(addr, val)  { this.view.setUint8(this._offset(addr), Number(BigInt(val) & 0xFFn)); }
   write16(addr, val) { this.view.setUint16(this._offset(addr), Number(BigInt(val) & 0xFFFFn), true); }
   write32(addr, val) { this.view.setUint32(this._offset(addr), Number(BigInt(val) & 0xFFFFFFFFn), true); }
   write64(addr, val) { this.view.setBigUint64(this._offset(addr), BigInt(val), true); }
-
 
   // ==========================================
   // VIRTIO HELPERS
@@ -5080,20 +4392,16 @@ const machineCode = new Uint32Array([
   0x5420666f, 0x20747365, 0x0a2d2d2d, 0x00000000,
 ]);
 
-
 let ramView = new Uint32Array(RVALUATION64.memory.buffer);
 for (let i = 0; i < machineCode.length; i++) {
     ramView[i] = machineCode[i];
 }
 
-
 // 3. Boot
 RVALUATION64.cpu.State.pc = 0x80000000n;
 RVALUATION64.cpu.State.x_ram[2] = 0x80000000n + BigInt(RAM_SIZE);
 
-
 console.log("Starting CPU...");
-
 
 // 4. Execution Loop
 try {
@@ -5103,4 +4411,3 @@ try {
 } catch (e) {
     console.log("CPU Halted with Reason:", e.message);
 }
-
