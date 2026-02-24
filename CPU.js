@@ -2476,7 +2476,31 @@ function write_csr(csr_addr, val) {
 }
 
 $.System.Zicsr = {
+  // ==========================================
+  // HARDWARE PERMISSION ENFORCER
+  // ==========================================
+  checkPermissions: function(csr_addr, is_write) {
+    let State = $.State;
+    
+    // Extract minimum privilege required (Bits 9:8)
+    let req_prv = (csr_addr >> 8) & 0x3;
+    
+    // Extract read-only status (Bits 11:10 === 3 means Read-Only)
+    let is_read_only = ((csr_addr >> 10) & 0x3) === 0x3;
 
+    // 1. Privilege Check
+    if (State.prv < BigInt(req_prv)) {
+        // You'll need to reference your MMU trap function here
+        $.MMU.triggerTrap(2n, $.State.pc, false); 
+        throw new Error("TRAP_RAISED");
+    }
+
+    // 2. Read-Only Write Check
+    if (is_write && is_read_only) {
+        $.MMU.triggerTrap(2n, $.State.pc, false);
+        throw new Error("TRAP_RAISED");
+    }
+  },
   // ==========================================
   // INTELLIGENT READ ROUTER
   // ==========================================
@@ -2490,7 +2514,7 @@ $.System.Zicsr = {
               let mstatus = State.csr.get(0x300) || 0n;
               // S-mode is only allowed to see these specific bits of mstatus:
               // SIE(1), SPIE(5), UBE(6), SPP(8), FS(13:14), XS(15:16), SUM(18), MXR(19), UXL(32:33), SD(63)
-              const SSTATUS_MASK = 0x80000003000DE122n;
+              const SSTATUS_MASK = 0x80000003000DE162n;
               val = mstatus & SSTATUS_MASK;
               break;
           }
@@ -2536,7 +2560,7 @@ $.System.Zicsr = {
           // --- S-Mode Shadows ---
           case 0x100: { // sstatus
               let mstatus = State.csr.get(0x300) || 0n;
-              const SSTATUS_MASK = 0x80000003000DE122n;
+              const SSTATUS_MASK = 0x80000003000DE162n;
               // Clear the S-visible bits in mstatus, then OR the new S-visible bits
               mstatus = (mstatus & ~SSTATUS_MASK) | (val & SSTATUS_MASK);
               State.csr.set(0x300, mstatus);
@@ -4121,62 +4145,25 @@ RVALUATION64.MMU = {
           return false;
       },
     } 
-  // ==========================================
-  // EXECUTION ENGINE
-  // ==========================================
-  RVALUATION64.step = function() {
-    try {
-        if (this.MMU.checkInterrupts()) return;
+// ==========================================
+// EXECUTION ENGINE
+// ==========================================
+RVALUATION64.step = function() {
+  try {
+      if (this.MMU.checkInterrupts()) return;
 
-        let pc = this.cpu.State.pc;
-        let inst = this.MMU.fetch(pc); 
-        
-        if ((inst & 0x3) !== 0x3) {
-            this.handleCompressed(inst & 0xFFFF);
-            return;
-        }
-
-        let opcode = this.Decode.opcode(inst);
-        let handler = null;
-        
-        // Flattened lookup based on opcode matching to standard RISC-V definitions
-        if (opcode === 0x37 || opcode === 0x17 || opcode === 0x6F || opcode === 0x67 || opcode === 0x63 || opcode === 0x03 || opcode === 0x23 || opcode === 0x13 || opcode === 0x33) handler = this.Opcodes.BASE_INTEGER;
-        else if (opcode === 0x1B || opcode === 0x3B) handler = this.Opcodes.RV64I_SPECIFIC;
-        else if (opcode === 0x2F) handler = this.Opcodes.ATOMICS;
-        else if (opcode === 0x07 || opcode === 0x27 || opcode === 0x43 || opcode === 0x47 || opcode === 0x4B || opcode === 0x4F || opcode === 0x53) handler = this.Opcodes.FLOATING_POINT;
-        else if (opcode === 0x0F || opcode === 0x73) handler = this.Opcodes.SYSTEM$MEMORY;
-
-        if (handler && handler[opcode]) {
-            handler[opcode].call(this, inst); 
-        } else {
-            this.MMU.triggerTrap(2n, BigInt(inst), false); // Illegal Instruction Trap
-        }
-      } catch (e) {
-        if (e.message !== "TRAP_RAISED") {
-            console.error(`💥 CRASH AT PC: 0x${this.cpu.State.pc.toString(16)}`);
-            console.error(`Error Message: ${e.message}`);
-            console.error("Stack Trace:\n", e.stack);
-            throw e; 
-        }
-    }
-  }
-
-  // Add this inside RVALUATION64, replacing your handleCompressed stub:
-
-RVALUATION64.handleCompressed = function(inst16) {
-      // 1. Expand the 16-bit instruction into a 32-bit equivalent
-      let inst32 = this.expandCompressed(inst16);
-
-      if (inst32 === null) {
-          // Unmapped or illegal compressed instruction (e.g., all zeros)
-          this.MMU.triggerTrap(2n, BigInt(inst16), false);
+      let pc = this.cpu.State.pc;
+      let inst = this.MMU.fetch(pc); 
+      
+      if ((inst & 0x3) !== 0x3) {
+          this.handleCompressed(inst & 0xFFFF);
           return;
       }
 
-      // 2. Decode the expanded 32-bit instruction
-      let opcode = this.Decode.opcode(inst32);
+      let opcode = this.Decode.opcode(inst);
       let handler = null;
       
+      // Flattened lookup based on opcode matching to standard RISC-V definitions
       if (opcode === 0x37 || opcode === 0x17 || opcode === 0x6F || opcode === 0x67 || opcode === 0x63 || opcode === 0x03 || opcode === 0x23 || opcode === 0x13 || opcode === 0x33) handler = this.Opcodes.BASE_INTEGER;
       else if (opcode === 0x1B || opcode === 0x3B) handler = this.Opcodes.RV64I_SPECIFIC;
       else if (opcode === 0x2F) handler = this.Opcodes.ATOMICS;
@@ -4184,22 +4171,55 @@ RVALUATION64.handleCompressed = function(inst16) {
       else if (opcode === 0x0F || opcode === 0x73) handler = this.Opcodes.SYSTEM$MEMORY;
 
       if (handler && handler[opcode]) {
-          // Save the current PC before execution
-          let old_pc = this.cpu.State.pc;
-          
-          // Execute the expanded 32-bit instruction
-          handler[opcode].call(this, inst32);
-          
-          // 3. PC CORRECTION
-          // Standard handlers do `pc += 4`. If the instruction wasn't a taken 
-          // branch or jump (meaning pc is exactly old_pc + 4), we fix it to +2.
-          if (this.cpu.State.pc === old_pc + 4n) {
-              this.cpu.State.pc = old_pc + 2n;
-          }
+          handler[opcode].call(this, inst); 
       } else {
-          this.MMU.triggerTrap(2n, BigInt(inst16), false); 
+          this.MMU.triggerTrap(2n, BigInt(inst), false); // Illegal Instruction Trap
       }
-  },
+    } catch (e) {
+      if (e.message !== "TRAP_RAISED") {
+          console.error(`💥 CRASH AT PC: 0x${this.cpu.State.pc.toString(16)}`);
+          console.error(`Error Message: ${e.message}`);
+          console.error("Stack Trace:\n", e.stack);
+          throw e; 
+      }
+  }
+}
+
+RVALUATION64.handleCompressed = function(inst16) {
+  // 1. Expand the 16-bit instruction into a 32-bit equivalent
+  let inst32 = this.expandCompressed(inst16);
+
+  if (inst32 === null) {
+      // Unmapped or illegal compressed instruction (e.g., all zeros)
+      this.MMU.triggerTrap(2n, BigInt(inst16), false);
+      return;
+  }
+
+  // 2. Decode the expanded 32-bit instruction
+  let opcode = this.Decode.opcode(inst32);
+  let handler = null;
+  
+  if (opcode === 0x37 || opcode === 0x17 || opcode === 0x6F || opcode === 0x67 || opcode === 0x63 || opcode === 0x03 || opcode === 0x23 || opcode === 0x13 || opcode === 0x33) handler = this.Opcodes.BASE_INTEGER;
+  else if (opcode === 0x1B || opcode === 0x3B) handler = this.Opcodes.RV64I_SPECIFIC;
+  else if (opcode === 0x2F) handler = this.Opcodes.ATOMICS;
+  else if (opcode === 0x07 || opcode === 0x27 || opcode === 0x43 || opcode === 0x47 || opcode === 0x4B || opcode === 0x4F || opcode === 0x53) handler = this.Opcodes.FLOATING_POINT;
+  else if (opcode === 0x0F || opcode === 0x73) handler = this.Opcodes.SYSTEM$MEMORY;
+
+  if (handler && handler[opcode]) {
+      // Save the current PC before execution
+      let old_pc = this.cpu.State.pc;
+      
+      // Execute the expanded 32-bit instruction
+      handler[opcode].call(this, inst32);
+  } else {
+      this.MMU.triggerTrap(2n, BigInt(inst16), false); 
+  }
+
+    // Correct the PC increment to +2 if the standard handler blindly did +4
+  if (this.cpu.State.pc === old_pc + 4n) {
+    this.cpu.State.pc = old_pc + 2n;
+  }
+}
 
 RVALUATION64.expandCompressed = function(inst16) {
       if (inst16 === 0x0000) return null; // All zeros is explicitly an illegal instruction
@@ -4296,9 +4316,9 @@ RVALUATION64.expandCompressed = function(inst16) {
 
           default: return null;
       }
-  }
+}
 
-  RVALUATION64.cpu.UART = new UART16550();
+RVALUATION64.cpu.UART = new UART16550();
 class PhysicalMemory {
   constructor(sizeInBytes, baseAddress = 0x80000000n) {
       this.buffer = new ArrayBuffer(sizeInBytes);
