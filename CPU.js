@@ -4361,7 +4361,33 @@ class PhysicalMemory {
   read32(addr) { return BigInt(this.view.getUint32(this._offset(addr), true)); }
   read64(addr) { return this.view.getBigUint64(this._offset(addr), true); }
 
-  write8(addr, val)  { this.view.setUint8(this._offset(addr), Number(BigInt(val) & 0xFFn)); }
+  write8(addr, val) { 
+    // Convert addr to BigInt once for the check
+    const bAddr = BigInt(addr);
+
+    // 1. Intercept the UART TX Address (0x10000000)
+    if (bAddr === 0x10000000n) { 
+        // Use the 'val' argument (and ensure it's a Number for fromCharCode)
+        const char = String.fromCharCode(Number(val) & 0xFF);
+        terminalBuffer += char;
+
+        // 2. Look for our ANSI "Clear Screen" escape sequence
+        // \x1b is the Escape character (27)
+        if (terminalBuffer.endsWith('\x1b[2J\x1b[H')) {
+            terminalEl.textContent = ""; 
+            terminalBuffer = "";         
+        } 
+        // 3. Flush to the screen on every newline
+        else if (char === '\n') {
+            terminalEl.textContent += terminalBuffer;
+            terminalBuffer = "";
+        }
+        return; 
+    }
+
+    // Normal RAM write
+    this.view.setUint8(this._offset(addr), Number(BigInt(val) & 0xFFn)); 
+  }
   write16(addr, val) { this.view.setUint16(this._offset(addr), Number(BigInt(val) & 0xFFFFn), true); }
   write32(addr, val) { this.view.setUint32(this._offset(addr), Number(BigInt(val) & 0xFFFFFFFFn), true); }
   write64(addr, val) { this.view.setBigUint64(this._offset(addr), BigInt(val), true); }
@@ -4463,6 +4489,8 @@ const machineCode = new Uint32Array([
 ]);
 
 
+
+
 let ramView = new Uint32Array(RVALUATION64.memory.buffer);
 for (let i = 0; i < machineCode.length; i++) {
     ramView[i] = machineCode[i];
@@ -4482,3 +4510,124 @@ try {
 } catch (e) {
     console.log("CPU Halted with Reason:", e.message);
 }
+
+
+// EXAMPLE SCRIPT
+
+/*
+
+typedef signed long long   int64_t;
+
+#define UART_BASE 0x10000000
+#define UART_REG_TX ((volatile char*)(UART_BASE + 0))
+
+void uart_putc(char c) { *UART_REG_TX = c; }
+void uart_print(const char* s) { while (*s) uart_putc(*s++); }
+
+// ANSI escape code to clear the terminal and reset cursor
+void clear_screen() { uart_print("\033[2J\033[H"); }
+
+static inline double builtin_sqrt(double x) {
+    double res;
+    __asm__ volatile ("fsqrt.d %0, %1" : "=f"(res) : "f"(x));
+    return res;
+}
+
+double my_sin(double x) {
+    double res = x, term = x, x2 = x * x;
+    for (double i = 3.0; i < 18.0; i += 2.0) {
+        term *= -x2 / (i * (i - 1.0));
+        res += term;
+    }
+    return res;
+}
+
+double my_cos(double x) {
+    double res = 1.0, term = 1.0, x2 = x * x;
+    for (double i = 2.0; i < 18.0; i += 2.0) {
+        term *= -x2 / (i * (i - 1.0));
+        res += term;
+    }
+    return res;
+}
+
+typedef struct { double x, y, z; } Vec3;
+
+// ASCII Render Grid (Width x Height)
+#define WIDTH 40
+#define HEIGHT 20
+char screen[HEIGHT][WIDTH];
+
+void clear_buffer() {
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            screen[y][x] = ' ';
+        }
+    }
+}
+
+void draw_buffer() {
+    for (int y = 0; y < HEIGHT; y++) {
+        for (int x = 0; x < WIDTH; x++) {
+            uart_putc(screen[y][x]);
+        }
+        uart_putc('\n');
+    }
+}
+
+int main() {
+    double root5 = builtin_sqrt(5.0);
+    double phi = (1.0 + root5) / 2.0;
+
+    // A subset of vertices for the shape
+    Vec3 vertices[12] = {
+        {0, 1, phi}, {0, -1, phi}, {0, 1, -phi}, {0, -1, -phi},
+        {1, phi, 0}, {-1, phi, 0}, {1, -phi, 0}, {-1, -phi, 0},
+        {phi, 0, 1}, {-phi, 0, 1}, {phi, 0, -1}, {-phi, 0, -1}
+    };
+
+    double angle = 0.0;
+
+    // Animate for 50 frames
+    for (int frame = 0; frame < 50; frame++) {
+        clear_screen();
+        clear_buffer();
+        uart_print("--- RISC-V FPU 3D Render ---\n");
+
+        double s = my_sin(angle);
+        double c = my_cos(angle);
+
+        for (int i = 0; i < 12; i++) {
+            // Rotate around Y axis
+            double rx = vertices[i].x * c + vertices[i].z * s;
+            double rz = -vertices[i].x * s + vertices[i].z * c;
+            double ry = vertices[i].y;
+
+            // Rotate around X axis to tilt it slightly
+            double tilt_s = my_sin(0.5);
+            double tilt_c = my_cos(0.5);
+            double ry2 = ry * tilt_c - rz * tilt_s;
+            
+            // Simple 3D to 2D Orthographic Projection
+            int px = (int)((rx * 8.0) + (WIDTH / 2));
+            int py = (int)((ry2 * 4.0) + (HEIGHT / 2)); // Scale Y down for terminal fonts
+
+            // Bounds check and draw
+            if (px >= 0 && px < WIDTH && py >= 0 && py < HEIGHT) {
+                screen[py][px] = '@'; 
+            }
+        }
+
+        draw_buffer();
+        
+        // Delay loop (adjust size based on your emulator speed)
+        for(volatile int d=0; d<50000; d++); 
+        
+        angle += 0.15;
+    }
+
+    uart_print("Animation Complete.\n");
+    __asm__ volatile("ebreak");
+    return 0;
+}
+*/
